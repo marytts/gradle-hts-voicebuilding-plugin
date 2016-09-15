@@ -10,19 +10,19 @@ class Raw {
         def user_configuration = project.user_configuration
         def export_dir = project.buildDir
         def trained_files = project.trained_files
-        
+
         // Define directories
         def model_dir = "$export_dir/raw/models"
         def tree_dir = "$export_dir/raw/trees"
         (new File(model_dir)).mkdirs()
         (new File(tree_dir)).mkdirs()
-    
+
         // Copy model files
         Files.copy(Paths.get(trained_files.get("mmf_cmp")),
                    Paths.get(model_dir + "/re_clustered_cmp.mmf"))
         Files.copy(Paths.get(trained_files.get("mmf_dur")),
                    Paths.get(model_dir + "/re_clustered_dur.mmf"))
-        
+
         // Copy tree files
         user_configuration.models.cmp.streams.each { stream ->
             Files.copy(Paths.get(trained_files.get(stream.name + "_tree")),

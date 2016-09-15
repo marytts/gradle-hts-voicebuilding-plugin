@@ -65,13 +65,9 @@ class GlobalVarianceStages
         // TODO: look if we can parallelize
         project.task('forceAlignment', dependsOn:"trainMonophoneMMF")
         {
-            outputs.upToDateWhen { 
-                false 
-            } 
-
             def output_files = []
-            (new File(DataFileFinder.getFilePath(project.user_configuration.data.scp))).eachLine{ cur_file ->
-                def basename = (new File(cur_file)).name.replace(".cmp", "")
+            (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).eachLine{ cur_file ->
+                def basename = (new File(cur_file)).name
                 def label = ""
                 def filename = project.gv_fal_dir + "/" + basename + ".lab"
                 output_files.add(filename.toString())
@@ -80,7 +76,7 @@ class GlobalVarianceStages
 
             doLast {
                 (new File(project.gv_fal_dir)).mkdirs()
-                project.hts_wrapper.HSMMAlign(DataFileFinder.getFilePath(project.user_configuration.data.scp),
+                project.hts_wrapper.HSMMAlign(project.train_scp,
                                               project.mono_list_filename,
                                               project.mono_mlf_filename,
                                               project.cmp_model_dir + "/monophone.mmf",
@@ -100,17 +96,17 @@ class GlobalVarianceStages
             }
 
 
-            (new File(DataFileFinder.getFilePath(project.user_configuration.data.scp))).eachLine{ cur_file ->
-                def basename = (new File(cur_file)).name.replace(".cmp", "")
+            (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).eachLine{ cur_file ->
+                def basename = (new File(cur_file)).name
                 outputs.files project.gv_data_dir + "/" + basename + ".cmp"
             }
 
             doLast {
                 withPool(project.nb_proc)
                 {
-                    def file_list = (new File(DataFileFinder.getFilePath(project.user_configuration.data.scp))).readLines() as List // FIXME: needs to use the "build.scp"
+                    def file_list = (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).readLines() as List
                     file_list.eachParallel { cur_file ->
-                        def basename = (new File(cur_file)).name.replace(".cmp", "")
+                        def basename = (new File(cur_file)).name
                         println("dealing with $basename.....")
                         def fs = project.user_configuration.signal.frameshift
                         def label = ""
@@ -195,8 +191,8 @@ class GlobalVarianceStages
                 def gv_scp_file = new File(project.gv_scp_dir + "/train.scp")
                 gv_scp_file.write("") // FIXME: ugly way to reinit the file
 
-                (new File(DataFileFinder.getFilePath(project.user_configuration.data.scp))).eachLine{ cur_file ->
-                    def basename = (new File(cur_file)).name.replace(".cmp", "")
+                (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).eachLine{ cur_file ->
+                    def basename = (new File(cur_file)).name
                     def label = ""
                     def i = 0
 
@@ -288,12 +284,6 @@ class GlobalVarianceStages
                     full_mmf.append("~h \"$line\"\n")
                     full_mmf.append(tail)
                 }
-
-
-                // exec {
-                //     def bash_cmd = ["gzip", "-c", project.gv_dir + "/fullcontext.mmf", ">", project.gv_dir + "/fullcontext.mmf.noembedded.gz"]
-                //     commandLine("bash", "-c", bash_cmd.join(" "))
-                // }
             }
         }
 
@@ -313,11 +303,6 @@ class GlobalVarianceStages
                                                  "-s", project.gv_dir + "/stats",
                                                  "-w", 0
                                              ])
-
-                // exec {
-                //     def bash_cmd = ["gzip", "-c", project.gvDirectory + "/fullcontext.mmf", ">", project.gvDirectory + "/fullcontext.mmf.embedded.gz"]
-                //     commandLine("bash", "-c", bash_cmd.join(" "))
-                // }
             }
         }
 
@@ -333,7 +318,6 @@ class GlobalVarianceStages
             def question_file = (new File (DataFileFinder.getFilePath(project.user_configuration.data.question_file_gv)))
             inputs.files project.gv_dir + "/fullcontext.mmf", question_file
             outputs.files project.gv_dir + "/clustered.mmf.noembedded.gz"
-            // outputs.upToDateWhen { false }
 
             doLast {
 
@@ -362,11 +346,11 @@ class GlobalVarianceStages
                         def questions = question_file.text
                         def streamline = "TB " + stream.gv.thr + " gv_" + stream.name +  "_ {*.state[2].stream[$s]}\n"
                         def binding = [
-                            GAM : stream.gv.gam,
-                                       STATSFILE:project.gv_dir + "/stats",
-                                       QUESTIONS:questions,
-                                       STREAMLINE:streamline,
-                                       OUTPUT:project.gv_dir + "/" + stream.name + ".inf"
+                        GAM : stream.gv.gam,
+                        STATSFILE:project.gv_dir + "/stats",
+                        QUESTIONS:questions,
+                        STREAMLINE:streamline,
+                        OUTPUT:project.gv_dir + "/" + stream.name + ".inf"
                         ]
 
                         expand(binding)
@@ -385,11 +369,6 @@ class GlobalVarianceStages
                                                   params)
                     s += 1
                 }
-
-                // exec {
-                //     def bash_cmd = ["gzip", "-c", project.gvDirectory + "/clustered.mmf", ">", project.gvDirectory + "/clustered.mmf.noembedded.gz"]
-                //     commandLine("bash", "-c", bash_cmd.join(" "))
-                // }
             }
         }
 
@@ -404,10 +383,6 @@ class GlobalVarianceStages
                                              project.gv_dir + "/clustered.mmf",
                                              project.gv_dir,
                                              [])
-                // exec {
-                //     def bash_cmd = ["gzip", "-c", project.gvDirectory + "/clustered.mmf", ">", project.gvDirectory + "/clustered.mmf.embedded.gz"]
-                //     commandLine("bash", "-c", bash_cmd.join(" "))
-                // }
             }
         }
 
@@ -432,7 +407,7 @@ class GlobalVarianceStages
                 (new File(project.gv_dir + "/average.mmf")).eachLine { line ->
                     if (line.indexOf("~h") >= 0) {
                         found_head_end = true
-                        
+
                         // Filling the head
                     } else if (!found_head_end) {
                         head += line + "\n"
@@ -494,7 +469,7 @@ class GlobalVarianceStages
             }
         }
 
-        
+
         project.task("trainGV")
         {
             if (project.user_configuration.gv.cdgv) {
