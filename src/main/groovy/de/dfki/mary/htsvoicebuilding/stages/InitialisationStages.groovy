@@ -34,6 +34,7 @@ class InitialisationStages {
             outputs.files train_scp_fh
 
             doLast {
+                train_scp_fh.text = "" // To be sure we do not append...
                 (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).eachLine{ cur_file ->
                     def basename = (new File(cur_file)).name
                     train_scp_fh << "$project.buildDir/cmp/" // FIXME: be more clever for directory
