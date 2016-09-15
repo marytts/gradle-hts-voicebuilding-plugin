@@ -1,0 +1,6 @@
+* HTS Voicebuilding plugin [0%]
+:PROPERTIES:
+:CATEGORY: tools
+:END:
+** TODO Binary/ASCII options
+** TODO Export as a marytts archive
