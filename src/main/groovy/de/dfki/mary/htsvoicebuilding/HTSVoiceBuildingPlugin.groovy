@@ -121,9 +121,13 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
 
             // HTS wrapper
             utils_dir = "$project.buildDir/tmp/utils"
+            def debug = false
+            if (config.settings.debug) {
+                debug = true
+            }
             hts_wrapper = new HTSWrapper(beams, "$project.train_config_filename",
                                          config.settings.training.wf, nb_proc_local,
-                                         "$project.buildDir/tmp/utils/HERest.pl")
+                                         "$project.buildDir/tmp/utils/HERest.pl", debug)
 
             template_dir = "$project.buildDir/tmp/templates"
 
