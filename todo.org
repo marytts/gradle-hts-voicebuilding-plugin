@@ -1,6 +1,8 @@
-* HTS Voicebuilding plugin [0%]
+* HTS Voicebuilding plugin
 :PROPERTIES:
 :CATEGORY: tools
 :END:
 ** TODO Binary/ASCII options
+** TODO Adding log level support
 ** TODO Export as a marytts archive
+** TODO think about a test protocol
