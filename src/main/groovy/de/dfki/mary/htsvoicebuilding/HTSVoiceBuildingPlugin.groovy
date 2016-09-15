@@ -43,7 +43,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
 
         def beams = config.settings.training.beam.split() as List
         def nb_proc_local = 1
-        if (project.gradle.startParameter.getParallelThreadCount() != 0) {
+        if (project.gradle.startParameter.getMaxWorkerCount() != 0) {
             nb_proc_local = Runtime.getRuntime().availableProcessors(); // By default the number of core
             if (config.settings.nb_proc) {
                 if (config.settings.nb_proc > nb_proc_local) {
