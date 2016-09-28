@@ -1,0 +1,17 @@
+* HTS voice building plugin [50%]
+** DONE Generalize the global variance
+CLOSED: [2016-09-28 Wed 10:00]
+You just have to get something like that :
+#+begin_src groovy
+task prepareData() {
+    (new File(DataFileFinder.getFilePath(config.data.list_files))).eachLine { basename ->
+        dependsOn ":${basename}:generateCMP"
+    }
+
+    /* We have also to adapt a little bit the coefficient paths */
+    project.user_configuration.models.cmp.streams.each { stream ->
+        stream.coeffDir = "$project.buildDir/${stream.coeffDir}"
+    }
+}
+#+end_src
+** TODO Cleaning and commenting
