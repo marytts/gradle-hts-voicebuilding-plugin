@@ -1,4 +1,7 @@
-* HTS voice building plugin [50%]
+* HTS voice building plugin [33%]
+:PROPERTIES:
+:CATEGORY: marytts
+:END:
 ** DONE Generalize the global variance
 CLOSED: [2016-09-28 Wed 10:00]
 You just have to get something like that :
@@ -14,4 +17,5 @@ task prepareData() {
     }
 }
 #+end_src
+** TODO Model in binary
 ** TODO Cleaning and commenting
