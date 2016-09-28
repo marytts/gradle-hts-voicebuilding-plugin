@@ -43,7 +43,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
 
         def beams = config.settings.training.beam.split() as List
         def nb_proc_local = 1
-        if (project.gradle.startParameter.getParallelThreadCount() != 0) {
+        if (project.gradle.startParameter.getMaxWorkerCount() != 0) {
             nb_proc_local = Runtime.getRuntime().availableProcessors(); // By default the number of core
             if (config.settings.nb_proc) {
                 if (config.settings.nb_proc > nb_proc_local) {
@@ -121,9 +121,13 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
 
             // HTS wrapper
             utils_dir = "$project.buildDir/tmp/utils"
+            def debug = false
+            if (config.settings.debug) {
+                debug = true
+            }
             hts_wrapper = new HTSWrapper(beams, "$project.train_config_filename",
                                          config.settings.training.wf, nb_proc_local,
-                                         "$project.buildDir/tmp/utils/HERest.pl")
+                                         "$project.buildDir/tmp/utils/HERest.pl", debug)
 
             template_dir = "$project.buildDir/tmp/templates"
 

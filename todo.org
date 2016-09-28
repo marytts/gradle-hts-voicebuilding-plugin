@@ -1,6 +1,6 @@
-* HTS voice building plugin [33%]
+* HTS voice building plugin [14%]
 :PROPERTIES:
-:CATEGORY: marytts
+:CATEGORY: tools
 :END:
 ** DONE Generalize the global variance
 CLOSED: [2016-09-28 Wed 10:00]
@@ -19,3 +19,7 @@ task prepareData() {
 #+end_src
 ** TODO Model in binary
 ** TODO Cleaning and commenting
+** TODO Binary/ASCII options
+** TODO Adding log level support
+** TODO Export as a marytts archive
+** TODO think about a test protocol
