@@ -42,9 +42,10 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
         }
 
         def beams = config.settings.training.beam.split() as List
-        def nb_proc_local = 1
-        if (project.gradle.startParameter.getMaxWorkerCount() != 0) {
-            nb_proc_local = Runtime.getRuntime().availableProcessors(); // By default the number of core
+        def nb_proc_local = 1;
+
+        if (project.gradle.startParameter.isParallelProjectExecutionEnabled()) {
+            nb_proc_local = project.gradle.startParameter.getMaxWorkerCount();
             if (config.settings.nb_proc) {
                 if (config.settings.nb_proc > nb_proc_local) {
                     throw Exception("You will overload your machine, preventing stop !")
