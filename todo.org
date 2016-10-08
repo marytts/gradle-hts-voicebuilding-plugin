@@ -1,4 +1,4 @@
-* HTS voice building plugin [14%]
+* HTS voice building plugin [42%]
 :PROPERTIES:
 :CATEGORY: tools
 :END:
@@ -17,9 +17,11 @@ task prepareData() {
     }
 }
 #+end_src
-** TODO Model in binary
+** DONE Model in binary
+CLOSED: [2016-10-08 Sat 14:46]
 ** TODO Cleaning and commenting
-** TODO Binary/ASCII options
+** DONE Binary/ASCII options
+CLOSED: [2016-10-08 Sat 14:46]
 ** TODO Adding log level support
 ** TODO Export as a marytts archive
 ** TODO think about a test protocol
