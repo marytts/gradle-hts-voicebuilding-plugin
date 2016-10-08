@@ -13,7 +13,12 @@ class HTSWrapper {
     public HTSWrapper(def beams, def train_config_filename, def training_wf,
                       def nb_proc, def herest_pl_script, def debug)
     {
-        global_options = ["-A", "-C", train_config_filename,  "-D", "-T", "1"]
+        if (debug) {
+            global_options = ["-A", "-C", train_config_filename,  "-D", "-T", "1"]
+        } else {
+            global_options = ["-A", "-B", "-C", train_config_filename,  "-D"]
+        }
+
         this.beams = beams
         this.training_wf = training_wf
         this.nb_proc = nb_proc
