@@ -33,7 +33,8 @@ class HTSWrapper {
         map_command["hinit"]     = ["HInit"]     + global_options + ["-m", "1", "-u", "tmvw", "-w", training_wf]
         map_command["hrest"]     = ["HRest"]     + global_options + ["-m", "1", "-u", "tmvw", "-w", training_wf]
         map_command["hhed"]      = ["HHEd"]      + global_options + ["-p", "-i"]
-        map_command["hsmmalign"] = ["HSMMAlign"] + global_options + ["-w", "1.0", "-t"] + beams
+
+        map_command["hsmmalign"] = ["HSMMAlign"] + (global_options - ["-B"]) + ["-w", "1.0", "-t"] + beams // For this specific command, no binary flag!
 
         // Parallize commands
         if (nb_proc > 1) {
