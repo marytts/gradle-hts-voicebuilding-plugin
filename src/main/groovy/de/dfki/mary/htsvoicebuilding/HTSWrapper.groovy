@@ -29,7 +29,7 @@ class HTSWrapper {
     private void init()
     {
         // Commands
-        map_command["hcompv"]    = ["HCompV"]    + global_options + ["-m"]
+        map_command["hcompv"]    = ["HCompV"]    + (global_options - ["-B"]) + ["-m"]
         map_command["hinit"]     = ["HInit"]     + global_options + ["-m", "1", "-u", "tmvw", "-w", training_wf]
         map_command["hrest"]     = ["HRest"]     + global_options + ["-m", "1", "-u", "tmvw", "-w", training_wf]
         map_command["hhed"]      = ["HHEd"]      + global_options + ["-p", "-i"]
