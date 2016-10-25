@@ -1,4 +1,4 @@
-* HTS voice building plugin [42%]
+* HTS voice building plugin [50%]
 :PROPERTIES:
 :CATEGORY: tools
 :END:
@@ -25,3 +25,5 @@ CLOSED: [2016-10-08 Sat 14:46]
 ** TODO Adding log level support
 ** TODO Export as a marytts archive
 ** TODO think about a test protocol
+** DONE Adding a validator when an HTS command is failing
+CLOSED: [2016-10-25 Tue 09:32]

@@ -48,11 +48,11 @@ class HTSWrapper {
         }
     }
 
-    private int executeOnShell(String command) {
-        return executeOnShell(command, new File(System.properties.'user.dir'))
+    private void executeOnShell(String command) {
+        executeOnShell(command, new File(System.properties.'user.dir'))
     }
 
-    private int executeOnShell(String command, File workingDir) {
+    private void executeOnShell(String command, File workingDir) {
         def process = new ProcessBuilder(addShellPrefix(command))
                                 .directory(workingDir)
                                 .redirectErrorStream(true)
@@ -61,7 +61,10 @@ class HTSWrapper {
         process.inputStream.eachLine {println it}
         process.waitFor();
 
-        return process.exitValue()
+        if (process.exitValue() != 0) {
+
+            throw new Exception("hts command failed: " + command)
+        }
     }
 
     private String[] addShellPrefix(String command) {
