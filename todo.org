@@ -1,4 +1,4 @@
-* HTS voice building plugin [50%]
+* HTS voice building plugin [44%]
 :PROPERTIES:
 :CATEGORY: tools
 :END:
@@ -27,3 +27,4 @@ CLOSED: [2016-10-08 Sat 14:46]
 ** TODO think about a test protocol
 ** DONE Adding a validator when an HTS command is failing
 CLOSED: [2016-10-25 Tue 09:32]
+** TODO Publishing instead of run
