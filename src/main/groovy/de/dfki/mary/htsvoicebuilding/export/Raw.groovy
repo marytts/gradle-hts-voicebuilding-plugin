@@ -3,6 +3,7 @@ package de.dfki.mary.htsvoicebuilding.export
 import groovy.json.* // To load the JSON configuration file
 import java.nio.file.Files
 import java.nio.file.Paths
+import groovy.json.* // To load the JSON configuration file
 
 class Raw {
     def static export(project) {
@@ -55,5 +56,17 @@ class Raw {
             Files.copy(Paths.get(trained_files.get("list_gv")),
                        Paths.get(gv_dir + "/gv.list"))
         }
+
+        // Copy windows
+        (new File("$export_dir/raw/win")).mkdirs()
+        user_configuration.models.cmp.streams.each { stream ->
+            stream.winfiles.each { winfilename ->
+                def winfile = new File(DataFileFinder.getFilePath(winfilename))
+                Files.copy(winfile.toPath(), Paths.get("$export_dir/raw/win/" + winfile.getName()))
+            }
+        }
+
+        // Finally copy file
+        (new File("$export_dir/raw/config.json")).text = new JsonBuilder(user_configuration).toPrettyString()
     }
 }
