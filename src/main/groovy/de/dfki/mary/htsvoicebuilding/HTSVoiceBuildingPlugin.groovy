@@ -32,7 +32,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
 
         // Load configuration
         def slurper = new JsonSlurper()
-        def config_file =  new File(System.getProperty("configuration"))
+        def config_file =  project.rootProject.config_file
         def config = slurper.parseText( config_file.text )
 
         // Adapt pathes
