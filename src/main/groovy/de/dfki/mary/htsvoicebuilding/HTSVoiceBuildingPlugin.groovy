@@ -167,6 +167,8 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
         }
 
 
+        addPrepareEnvironmentTask(project)
+
         project.afterEvaluate {
             project.dependencies {
                 compile "de.dfki.mary:marytts-lang-$project.voice.locale.language:$project.maryttsVersion"
@@ -174,7 +176,6 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
             }
 
             // Add the tasks
-            addPrepareEnvironmentTask(project)
             InitialisationStages.addTasks(project)
             MonophoneStages.addTasks(project)
             ContextStages.addTasks(project)
@@ -190,7 +191,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
      ****************************************************************************************/
     private void addPrepareEnvironmentTask(Project project)
     {
-        project.task('prepareEnvironment', dependsOn: project.rootProject.tasks.prepareData)
+        project.task('prepareEnvironment')
         {
 
             // Create model and trees directories
