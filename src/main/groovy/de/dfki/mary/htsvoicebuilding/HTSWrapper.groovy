@@ -48,11 +48,12 @@ class HTSWrapper {
         }
     }
 
-    private void executeOnShell(String command) {
+
+    public static void executeOnShell(String command) {
         executeOnShell(command, new File(System.properties.'user.dir'))
     }
 
-    private void executeOnShell(String command, File workingDir) {
+    public static void executeOnShell(String command, File workingDir) {
         def process = new ProcessBuilder(addShellPrefix(command))
                                 .directory(workingDir)
                                 .redirectErrorStream(true)
@@ -67,7 +68,7 @@ class HTSWrapper {
         }
     }
 
-    private String[] addShellPrefix(String command) {
+    private static String[] addShellPrefix(String command) {
         String[] commandArray = new String[3]
         commandArray[0] = "sh"
         commandArray[1] = "-c"
@@ -205,4 +206,8 @@ class HTSWrapper {
         executeOnShell(cur_command.join(" "))
     }
 
+    public void makeDNNFeature(def input_lab, def output_ffi, def qconf, def frameshift)
+    {
+        def cur_command = ["mak"]
+    }
 }

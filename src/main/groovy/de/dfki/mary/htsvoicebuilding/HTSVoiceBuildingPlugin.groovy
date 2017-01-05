@@ -180,6 +180,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
             MonophoneStages.addTasks(project)
             ContextStages.addTasks(project)
             GlobalVarianceStages.addTasks(project)
+            DNNStages.addTasks(project)
             addExportingTasks(project)
             addRunTask(project)
         }
@@ -253,7 +254,8 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
             // Util. scripts
             (new File(project.utils_dir)).mkdirs()
             def utils = ['HERest.pl',
-                         'addhtkheader.pl'
+                         'addhtkheader.pl',
+                         "makefeature.pl"
                         ].collect {
                 project.file "$project.utils_dir/$it"
             }
