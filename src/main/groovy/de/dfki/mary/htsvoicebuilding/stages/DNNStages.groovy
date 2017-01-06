@@ -49,13 +49,15 @@ class DNNStages
             }
         }
 
-        project.task("makeDataSCP", type:StandardTask, dependsOn: "makeFeatures")
+        project.task("makeDNNSCP", type:StandardTask) //, dependsOn: "makeFeatures")
         {
-            output = "$dnn_output_dir/train_dnn.scp"
+            output = "$dnn_output_dir"
             doLast {
-                def ffo_dir = "" // TODO: link
+                def output_file = new File("$output/train_dnn.scp")
+                output_file.text = ""
+                def ffo_dir = project.buildDir.toString() + "/ffo" // TODO: properly dealing with that
                 (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).eachLine { cur_file ->
-                    output << "${project.tasks.makeFeatures.output}/${cur_file}.ffi $ffo_dir/${cur_file}.ffo" + System.getProperty("line.separator")
+                    output_file << "${project.tasks.makeFeatures.output}/${cur_file}.ffi $ffo_dir/${cur_file}.ffo" + System.getProperty("line.separator")
                 }
             }
 
@@ -63,18 +65,18 @@ class DNNStages
 
         project.task("generateDNNConfig", type:StandardTask)
         {
-            output = "$project.config_dir/train_dnn.config"
+            output = "$project.config_dir"
             doLast {
 
                 def vec_size = 0
                 project.user_configuration.models.ffo.streams.each { stream ->
-                    vec_size += stream.order + 1
+                    vec_size += (stream.order + 1) * stream.winfiles.size()
                 }
                 def dnn_settings = project.user_configuration.settings.dnn
 
                 // Now adapt the proto template
                 def binding = [
-                num_input_units: 694, // FIXME: fix according to the number of questions
+                num_input_units: 691, // FIXME: fix according to the number of questions
                 num_hidden_units: dnn_settings.num_hidden_units,
                 num_output_units: vec_size,
 
@@ -84,7 +86,7 @@ class DNNStages
                 learning_rate: dnn_settings.learning_rate,
                 keep_prob: dnn_settings.keep_prob,
 
-                use_queue: dnn_settings.usequeue,
+                use_queue: dnn_settings.use_queue,
                 queue_size: dnn_settings.queue_size,
 
                 batch_size: dnn_settings.batch_size,
@@ -139,17 +141,18 @@ class DNNStages
 
         project.task("trainDNN", type:StandardTask)
         {
-            // dependsOn "makeDataSCP", "generateDNNConfig", "computeVAR"
+            outputs.upToDateWhen { false }
+            dependsOn "makeDNNSCP", "generateDNNConfig", "computeVAR"
 
             def train_script_file = "$project.utils_dir/DNNTraining.py";
             inputs.files train_script_file
 
-            def output = new File("$dnn_output_dir/models")
-            outputs.files output
+            output = new File("$dnn_output_dir/models")
 
             doLast {
                 output.mkdirs()
-                String command = "python $train_script_file -C ${project.tasks.generateDNNConfig.output} -s ${project.tasks.makeDataSCP.output} -H output -z ${project.tasks.computeVAR.output}".toString()
+                String command = "python -u -B $train_script_file -C ${project.tasks.generateDNNConfig.output}/train_dnn.cfg -S ${project.tasks.makeDNNSCP.output}/train_dnn.scp -H $output -z ${project.tasks.computeVAR.output}/global.var".toString()
+                println(command)
                 HTSWrapper.executeOnShell(command)
             }
         }
