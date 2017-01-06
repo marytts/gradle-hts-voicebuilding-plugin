@@ -14,6 +14,8 @@ import org.gradle.api.tasks.bundling.Zip
 import static groovyx.gpars.GParsPool.runForkJoin
 import static groovyx.gpars.GParsPool.withPool
 
+
+import de.dfki.mary.utils.StandardTask
 import de.dfki.mary.htsvoicebuilding.DataFileFinder
 
 import groovy.json.JsonBuilder
@@ -63,26 +65,36 @@ class GlobalVarianceStages
 
 
         // TODO: look if we can parallelize
-        project.task('forceAlignment', dependsOn:"trainMonophoneMMF")
+        project.task('generateStateForceAlignment', type:StandardTask, dependsOn:"trainMonophoneMMF")
         {
+            output = project.gv_fal_dir + "/state"
+
+
             def output_files = []
             (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).eachLine{ cur_file ->
                 def basename = (new File(cur_file)).name
                 def label = ""
-                def filename = project.gv_fal_dir + "/" + basename + ".lab"
+                def filename = output.toString() + "/" + basename + ".lab"
                 output_files.add(filename.toString())
             }
             outputs.files(output_files)
 
             doLast {
-                (new File(project.gv_fal_dir)).mkdirs()
+                (new File(output)).mkdirs()
                 project.hts_wrapper.HSMMAlign(project.train_scp,
                                               project.mono_list_filename,
                                               project.mono_mlf_filename,
                                               project.cmp_model_dir + "/monophone.mmf",
                                               project.dur_model_dir + "/monophone.mmf",
-                                              project.gv_fal_dir)
+                                              output.toString(),
+                                              true)
             }
+        }
+
+
+        // TODO: look if we can parallelize
+        project.task('forceAlignment', dependsOn:"generateStateForceAlignment")
+        {
         }
 
         project.task('GVCoefficientsExtraction', dependsOn:'prepareEnvironment')
