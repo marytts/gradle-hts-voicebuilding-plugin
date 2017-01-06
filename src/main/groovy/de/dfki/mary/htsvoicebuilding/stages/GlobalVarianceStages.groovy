@@ -65,7 +65,7 @@ class GlobalVarianceStages
 
 
         // TODO: look if we can parallelize
-        project.task('generateStateForceAlignment', type:StandardTask, dependsOn:"trainMonophoneMMF")
+        project.task('generateStateForceAlignment', type: StandardTask, dependsOn:"trainMonophoneMMF")
         {
             output = project.gv_fal_dir + "/state"
 
@@ -93,8 +93,41 @@ class GlobalVarianceStages
 
 
         // TODO: look if we can parallelize
-        project.task('forceAlignment', dependsOn:"generateStateForceAlignment")
+        project.task('forceAlignment', type: StandardTask, dependsOn:"generateStateForceAlignment")
         {
+            output = project.gv_fal_dir + "/phone"
+
+            doLast {
+
+                def id_last_state = project.settings.models.global.nb_emitting_states + 1
+                withPool(project.nb_proc)
+                {
+                    def file_list = (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).readLines() as List
+                    file_list.eachParallel { cur_file ->
+                        def state_file = new File(project.tasks.generateStateForceAlignment.output.toString() + "/${cur_file}.lab")
+                        def phone_file = new File(output.toString() + "/${cur_file}.lab")
+
+
+                        def start = 0
+                        state_file.eachLine { line ->
+                            def val = line.split()
+                            def m = val[2] =~ /[^-]*-([^+]*)[+].*\[([0-9]*)\]$/
+
+                            def label = m[0][1]
+                            def state = Integer.parseInt(m[0][2])
+
+                            if (state == 2)
+                            {
+                                start = val[0]
+                            }
+                            else if (state == id_last_state)
+                            {
+                                phone_file << "$start ${val[1]} $label\n"
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         project.task('GVCoefficientsExtraction', dependsOn:'prepareEnvironment')
