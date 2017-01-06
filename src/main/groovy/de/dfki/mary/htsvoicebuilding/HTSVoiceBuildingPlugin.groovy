@@ -238,6 +238,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
                              'proto',
                              'protogv',
                              'train.cfg',
+                             'train_dnn.cfg',
                              'voice-straight-hsmm.config',
                              'vfloordur',
                             ].collect {
@@ -255,7 +256,10 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
             (new File(project.utils_dir)).mkdirs()
             def utils = ['HERest.pl',
                          'addhtkheader.pl',
-                         "makefeature.pl"
+                         'makefeature.pl',
+                         'DNNDataIO.py',
+                         'DNNDefine.py',
+                         'DNNTraining.py'
                         ].collect {
                 project.file "$project.utils_dir/$it"
             }

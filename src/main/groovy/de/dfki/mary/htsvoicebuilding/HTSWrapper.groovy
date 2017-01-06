@@ -192,9 +192,11 @@ class HTSWrapper {
 
 
     public void HSMMAlign(def scp_filename, def list_filename, def mlf_filename,
-                          def cmp_input_filename, def dur_input_filename, def output_dir)
+                          def cmp_input_filename, def dur_input_filename, def output_dir, def state_align)
     {
         def cur_command = map_command["hsmmalign"]
+        if (state_align)
+            cur_command += "-f"
         cur_command +=  [
             "-S", scp_filename,
             "-I", mlf_filename,
@@ -204,10 +206,5 @@ class HTSWrapper {
             list_filename, list_filename]
 
         executeOnShell(cur_command.join(" "))
-    }
-
-    public void makeDNNFeature(def input_lab, def output_ffi, def qconf, def frameshift)
-    {
-        def cur_command = ["mak"]
     }
 }

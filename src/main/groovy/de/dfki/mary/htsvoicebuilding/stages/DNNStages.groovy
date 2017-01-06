@@ -16,6 +16,7 @@ import static groovyx.gpars.GParsPool.withPool
 
 import de.dfki.mary.htsvoicebuilding.HTSWrapper
 import de.dfki.mary.htsvoicebuilding.DataFileFinder
+import de.dfki.mary.utils.StandardTask
 
 import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
@@ -26,47 +27,110 @@ class DNNStages
     public static void addTasks(Project project)
     {
         def dnn_output_dir = "$project.buildDir/DNN/"
-        project.task("makeFeatures", dependsOn: "forceAlignment")
+
+        project.task("makeFeatures", type:StandardTask) //, dependsOn: "generateStateForceAlignment")
         {
+            def mkf_script_file = "$project.utils_dir/makefeature.pl";
+            output = "$dnn_output_dir/ffi"
 
-            def output_dir = "$dnn_output_dir/ffi"
-            (new File(output_dir)).mkdirs()
-            def mkf_script_file = "$project.utils_dir/makefeature.pl"; // TODO
-            def qconf = (new File(DataFileFinder.getFilePath(project.user_configuration.settings.dnn.qconf))); // TODO: what is it ?
-            def hal_dir = project.gv_fal_dir; // TODO: link
-            def val = 1E+3 * project.user_configuration.signal.frameshift;
+            def qconf = (new File(DataFileFinder.getFilePath(project.user_configuration.settings.dnn.qconf)));
+            def val = 1E+4 * project.user_configuration.signal.frameshift; // FIXME: why this frameshift
 
-            outputs.files hal_dir
+            outputs.files output
             doLast {
-
                 withPool(project.nb_proc)
                 {
                     def file_list = (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).readLines() as List
                     file_list.eachParallel { cur_file ->
-                        java.lang.String command = "perl $mkf_script_file $qconf $val $hal_dir/${cur_file}.lab | x2x +af > $output_dir/${cur_file}.ffi".toString()
+                        String command = "perl $mkf_script_file $qconf $val ${project.tasks.generateStateForceAlignment.output}/${cur_file}.lab | x2x +af > $output/${cur_file}.ffi".toString()
                         HTSWrapper.executeOnShell(command)
                     }
                 }
             }
         }
 
-        project.task("makeDataSCP") {
-            dependsOn "makeFeatures"
-            def scp = new File("$dnn_output_dir/train_dnn.scp")
-            scp.text = ""
-            outputs.files scp
+        project.task("makeDataSCP", type:StandardTask, dependsOn: "makeFeatures")
+        {
+            output = "$dnn_output_dir/train_dnn.scp"
             doLast {
                 def ffo_dir = "" // TODO: link
                 (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).eachLine { cur_file ->
-                    scp << "$dnn_output_dir/ffi/ $ffo_dir" + System.getProperty("line.separator2")
+                    output << "${project.tasks.makeFeatures.output}/${cur_file}.ffi $ffo_dir/${cur_file}.ffo" + System.getProperty("line.separator")
                 }
             }
 
         }
 
-        project.task("trainDNN")
+        project.task("generateDNNConfig", type:StandardTask)
         {
-            dependsOn "makeDataSCP"
+            output = "$project.config_dir/train_dnn.config"
+            doLast {
+
+                def vec_size = 0
+                project.user_configuration.models.ffo.streams.each { stream ->
+                    vec_size += stream.order + 1
+                }
+                def dnn_settings = project.user_configuration.settings.dnn
+
+                // Now adapt the proto template
+                def binding = [
+                num_input_units: 694, // FIXME: fix according to the number of questions
+                num_hidden_units: dnn_settings.num_hidden_units,
+                num_output_units: vec_size,
+
+                hidden_activation: dnn_settings.hidden_activation,
+                output_activation: "Linear",
+                optimizer: dnn_settings.optimizer,
+                learning_rate: dnn_settings.learning_rate,
+                keep_prob: dnn_settings.keep_prob,
+
+                use_queue: dnn_settings.usequeue,
+                queue_size: dnn_settings.queue_size,
+
+                batch_size: dnn_settings.batch_size,
+                num_epochs: dnn_settings.num_epochs,
+                num_threads: dnn_settings.num_threads,
+                random_seed: dnn_settings.random_seed,
+
+                num_models_to_keep: dnn_settings.num_models_to_keep,
+
+                log_interval: dnn_settings.log_interval,
+                save_interval: dnn_settings.save_interval
+                ]
+
+                // Copy
+                project.copy {
+                    from project.template_dir
+                    into project.config_dir
+
+                    include "train_dnn.cfg"
+
+                    expand(binding)
+                }
+            }
+        }
+
+        project.task("computeVAR", type:StandardTask, dependsOn: "prepareEnvironment")
+        {
+            dependsOn "prepareEnvironment"
+            def output = new File("$dnn_output_dir/var")
+        }
+
+        project.task("trainDNN", type:StandardTask)
+        {
+            dependsOn "makeDataSCP", "generateDNNConfig", "computeVAR"
+
+            def train_script_file = "$project.utils_dir/DNNTraining.py";
+            inputs.files train_script_file
+
+            def output = new File("$dnn_output_dir/models")
+            outputs.files output
+
+            doLast {
+                output.mkdirs()
+                String command = "python $train_script_file -C ${project.tasks.generateDNNConfig.output} -s ${project.tasks.makeDataSCP.output} -H output -z ${project.tasks.computeVAR.output}".toString()
+                HTSWrapper.executeOnShell(command)
+            }
         }
     }
 }
