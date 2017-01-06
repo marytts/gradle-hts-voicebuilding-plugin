@@ -112,13 +112,34 @@ class DNNStages
 
         project.task("computeVAR", type:StandardTask, dependsOn: "prepareEnvironment")
         {
-            dependsOn "prepareEnvironment"
-            def output = new File("$dnn_output_dir/var")
+            output = new File("$dnn_output_dir/var")
+
+            doLast {
+                def ffodim = 0
+                project.user_configuration.models.ffo.streams.each { stream ->
+                    ffodim += (stream.order + 1) * stream.winfiles.size()
+                }
+                def command_global_var = "cat $project.buildDir/ffo/*.ffo | vstat -l $ffodim -d -o 2 > $output/global.var"
+                HTSWrapper.executeOnShell(command_global_var)
+
+
+                def start = 0
+                project.user_configuration.models.ffo.streams.each { stream ->
+                    def dim = (stream.order + 1) * stream.winfiles.size()
+                    if (stream.stats)
+                    {
+                        def command_stream_var = "bcut +f -s $start -e ${start+dim-1} -l 1 $output/global.var > $output/${stream.kind}.var"
+                        println(command_stream_var)
+                        HTSWrapper.executeOnShell(command_stream_var)
+                    }
+                    start += dim
+                }
+            }
         }
 
         project.task("trainDNN", type:StandardTask)
         {
-            dependsOn "makeDataSCP", "generateDNNConfig", "computeVAR"
+            // dependsOn "makeDataSCP", "generateDNNConfig", "computeVAR"
 
             def train_script_file = "$project.utils_dir/DNNTraining.py";
             inputs.files train_script_file
