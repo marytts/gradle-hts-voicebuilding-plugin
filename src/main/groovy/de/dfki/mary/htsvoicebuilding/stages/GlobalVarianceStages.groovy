@@ -80,7 +80,6 @@ class GlobalVarianceStages
             outputs.files(output_files)
 
             doLast {
-                (new File(output)).mkdirs()
                 project.hts_wrapper.HSMMAlign(project.train_scp,
                                               project.mono_list_filename,
                                               project.mono_mlf_filename,
