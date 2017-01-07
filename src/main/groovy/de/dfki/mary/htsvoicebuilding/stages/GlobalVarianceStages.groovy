@@ -98,7 +98,7 @@ class GlobalVarianceStages
 
             doLast {
 
-                def id_last_state = project.settings.models.global.nb_emitting_states + 1
+                def id_last_state = project.user_configuration.models.global.nb_emitting_states + 1
                 withPool(project.nb_proc)
                 {
                     def file_list = (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).readLines() as List
