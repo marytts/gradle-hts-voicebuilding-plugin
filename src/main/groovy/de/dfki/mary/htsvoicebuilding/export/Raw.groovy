@@ -4,6 +4,7 @@ import groovy.json.* // To load the JSON configuration file
 import java.nio.file.Files
 import java.nio.file.Paths
 import groovy.json.* // To load the JSON configuration file
+import org.apache.commons.io.FileUtils;
 
 class Raw {
     def static export(project) {
@@ -64,6 +65,20 @@ class Raw {
                 def winfile = new File(DataFileFinder.getFilePath(winfilename))
                 Files.copy(winfile.toPath(), Paths.get("$export_dir/raw/win/" + winfile.getName()))
             }
+        }
+
+        // Copy DNN part
+        if ((user_configuration.settings.training.kind) &&
+            (user_configuration.settings.training.kind.equals("dnn")))
+        {
+            FileUtils.copyDirectory(new File("$project.buildDir/DNN/models"),
+                                    new File("$export_dir/raw/DNN/models"));
+
+            FileUtils.copyDirectory(new File("$project.buildDir/DNN/var"),
+                                    new File("$export_dir/raw/DNN/var"));
+
+            Files.copy(Paths.get(DataFileFinder.getFilePath(user_configuration.settings.dnn.qconf)),
+                       Paths.get("$export_dir/raw/DNN/qconf.conf"));
         }
 
         // Finally copy file

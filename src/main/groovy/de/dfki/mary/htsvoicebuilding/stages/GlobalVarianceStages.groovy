@@ -136,7 +136,7 @@ class GlobalVarianceStages
                 gv_lab_dir = DataFileFinder.getFilePath(project.user_configuration.gv.label_dir)
             } else {
                 dependsOn.add("forceAlignment")
-                gv_lab_dir = project.gv_fal_dir
+                gv_lab_dir = project.gv_fal_dir + "/phone"
             }
 
 

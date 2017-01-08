@@ -28,7 +28,7 @@ class DNNStages
     {
         def dnn_output_dir = "$project.buildDir/DNN/"
 
-        project.task("makeFeatures", type:StandardTask) //, dependsOn: "generateStateForceAlignment")
+        project.task("makeFeatures", type:StandardTask, dependsOn: "generateStateForceAlignment")
         {
             def mkf_script_file = "$project.utils_dir/makefeature.pl";
             output = "$dnn_output_dir/ffi"
@@ -49,7 +49,7 @@ class DNNStages
             }
         }
 
-        project.task("makeDNNSCP", type:StandardTask) //, dependsOn: "makeFeatures")
+        project.task("makeDNNSCP", type:StandardTask, dependsOn: "makeFeatures")
         {
             output = "$dnn_output_dir"
             doLast {

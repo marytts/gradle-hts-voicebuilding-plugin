@@ -19,6 +19,8 @@ def maryttsVersion = '5.1.2'
 dependencies {
     compile localGroovy()
     compile group:'org.codehaus.gpars', name: 'gpars', version:'1.1.0'
+    compile group:'commons-io', name:'commons-io', version:'2.4'
+
     // compile group: 'de.dfki.mary', name: 'marytts-runtime', version: maryttsVersion
     // ['de', 'en', 'fr', 'it', 'ru', 'sv', 'te', 'tr'].each { locale ->
     //     runtime group: 'de.dfki.mary', name: "marytts-lang-$locale", version: maryttsVersion

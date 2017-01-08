@@ -281,6 +281,12 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
             if (project.user_configuration.gv.use) {
                 dependsOn.add("trainGV")
             }
+
+            if ((project.user_configuration.settings.training.kind) &&
+                (project.user_configuration.settings.training.kind.equals("dnn")))
+            {
+                dependsOn.add("trainDNN")
+            }
         }
 
         project.task('exportPreparation', dependsOn:'training')
