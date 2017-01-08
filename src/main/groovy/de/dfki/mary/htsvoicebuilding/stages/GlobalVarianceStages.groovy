@@ -65,8 +65,10 @@ class GlobalVarianceStages
 
 
         // TODO: look if we can parallelize
-        project.task('generateStateForceAlignment', type: StandardTask, dependsOn:"trainMonophoneMMF")
+        project.task('generateStateForceAlignment', type: StandardTask)
         {
+            def last_clust = project.user_configuration.settings.training.nb_clustering - 1
+            dependsOn "trainClusteredModels" + last_clust
             output = project.gv_fal_dir + "/state"
 
 
@@ -81,17 +83,16 @@ class GlobalVarianceStages
 
             doLast {
                 project.hts_wrapper.HSMMAlign(project.train_scp,
-                                              project.mono_list_filename,
-                                              project.mono_mlf_filename,
-                                              project.cmp_model_dir + "/monophone.mmf",
-                                              project.dur_model_dir + "/monophone.mmf",
+                                              project.full_list_filename,
+                                              project.full_mlf_filename,
+                                              project.cmp_model_dir + "/clustered.mmf." + last_clust,
+                                              project.dur_model_dir + "/clustered.mmf." + last_clust,
                                               output.toString(),
                                               true)
             }
         }
 
 
-        // TODO: look if we can parallelize
         project.task('forceAlignment', type: StandardTask, dependsOn:"generateStateForceAlignment")
         {
             output = project.gv_fal_dir + "/phone"
@@ -111,7 +112,6 @@ class GlobalVarianceStages
                         state_file.eachLine { line ->
                             def val = line.split()
                             def m = val[2] =~ /[^-]*-([^+]*)[+].*\[([0-9]*)\]$/
-
                             def label = m[0][1]
                             def state = Integer.parseInt(m[0][2])
 
