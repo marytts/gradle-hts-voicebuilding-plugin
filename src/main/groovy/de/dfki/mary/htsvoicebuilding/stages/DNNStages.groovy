@@ -33,11 +33,11 @@ class DNNStages
             def mkf_script_file = "$project.utils_dir/makefeature.pl";
             output = "$dnn_output_dir/ffi"
 
-            def qconf = (new File(DataFileFinder.getFilePath(project.user_configuration.settings.dnn.qconf)));
             def val = 1E+4 * project.user_configuration.signal.frameshift; // FIXME: why this frameshift
 
             outputs.files output
             doLast {
+                def qconf = (new File(DataFileFinder.getFilePath(project.user_configuration.settings.dnn.qconf)));
                 withPool(project.nb_proc)
                 {
                     def file_list = (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).readLines() as List
