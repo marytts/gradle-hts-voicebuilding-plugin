@@ -72,17 +72,18 @@ class GlobalVarianceStages
             output = project.gv_fal_dir + "/state"
 
 
-            def output_files = []
-            (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
-                def basename = (new File(cur_file)).name
-                def label = ""
-                def filename = output.toString() + "/" + basename + ".lab"
-                output_files.add(filename.toString())
-            }
-            outputs.files(output_files)
+            // outputs.files(output_files)
 
             doLast {
-                project.hts_wrapper.HSMMAlign(project.train_scp,
+                def output_files = []
+                (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
+                    def basename = (new File(cur_file)).name
+                    def label = ""
+                    def filename = output.toString() + "/" + basename + ".lab"
+                    output_files.add(filename.toString())
+                }
+
+                project.configuration.hts_wrapper.HSMMAlign(project.train_scp,
                                               project.full_list_filename,
                                               project.full_mlf_filename,
                                               project.cmp_model_dir + "/clustered.mmf." + last_clust,
@@ -100,7 +101,7 @@ class GlobalVarianceStages
             doLast {
 
                 def id_last_state = project.configuration.user_configuration.models.global.nb_emitting_states + 1
-                withPool(project.nb_proc)
+                withPool(project.configuration.nb_proc)
                 {
                     def file_list = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).readLines() as List
                     file_list.eachParallel { cur_file ->
@@ -140,13 +141,13 @@ class GlobalVarianceStages
             }
 
 
-            (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
-                def basename = (new File(cur_file)).name
-                outputs.files project.gv_data_dir + "/" + basename + ".cmp"
-            }
+            // (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
+            //     def basename = (new File(cur_file)).name
+            //     outputs.files project.gv_data_dir + "/" + basename + ".cmp"
+            // }
 
             doLast {
-                withPool(project.nb_proc)
+                withPool(project.configuration.nb_proc)
                 {
                     def file_list = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).readLines() as List
                     file_list.eachParallel { cur_file ->
@@ -287,7 +288,7 @@ class GlobalVarianceStages
             inputs.files project.gv_dir + "/proto", project.mlf_dir + "/gv.mlf", project.list_dir + "/gv.list"
             outputs.files project.gv_dir + "/average.mmf"
             doLast {
-                project.hts_wrapper.HCompV(project.gv_scp_dir + "/train.scp",
+                project.configuration.hts_wrapper.HCompV(project.gv_scp_dir + "/train.scp",
                                            project.gv_dir + "/proto",
                                            project.gv_dir + "/average.mmf",
                                            project.gv_dir)
@@ -337,7 +338,7 @@ class GlobalVarianceStages
             outputs.files project.gv_dir + "/fullcontext.mmf.embedded.gz"
 
             doLast {
-                project.hts_wrapper.HERestGV(project.gv_scp_dir + "/train.scp",
+                project.configuration.hts_wrapper.HERestGV(project.gv_scp_dir + "/train.scp",
                                              project.list_dir + "/gv.list",
                                              project.mlf_dir + "/gv.mlf",
                                              project.gv_dir + "/fullcontext.mmf",
@@ -406,7 +407,7 @@ class GlobalVarianceStages
                         params += ["-m", "-a", stream.gv.mdlf]
                     }
 
-                    project.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "cxc_gv_" + stream.name + ".hed",
+                    project.configuration.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "cxc_gv_" + stream.name + ".hed",
                                                   project.list_dir + "/gv.list",
                                                   project.gv_dir + "/clustered.mmf",
                                                   project.gv_dir + "/clustered.mmf",
@@ -421,7 +422,7 @@ class GlobalVarianceStages
             inputs.files project.gv_dir + "/clustered.mmf"
             outputs.files project.gv_dir + "/clustered.mmf.embbeded.gz"
             doLast {
-                project.hts_wrapper.HERestGV(project.gv_scp_dir + "/train.scp",
+                project.configuration.hts_wrapper.HERestGV(project.gv_scp_dir + "/train.scp",
                                              project.list_dir + "/gv.list",
                                              project.mlf_dir + "/gv.mlf",
                                              project.gv_dir + "/clustered.mmf",

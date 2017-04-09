@@ -51,7 +51,7 @@ class MonophoneStages {
                 }
 
 
-                withPool(project.nb_proc) {
+                withPool(project.configuration.nb_proc) {
                     monophone_set.eachParallel { phone ->
                         // inputs.files project.mono_mlf_filename,  "$project.cmp_model_dir/average.mmf", \
                         // "$project.cmp_model_dir/init.mmf", "$project.dur_model_dir/average.mmf"
@@ -78,13 +78,13 @@ class MonophoneStages {
                              *   - WARNING [-7032]  OWarn: change HMM Set msdflag[0] in HRest
                              */
                             // HInit
-                            project.hts_wrapper.HInit(phone, project.train_scp,
+                            project.configuration.hts_wrapper.HInit(phone, project.train_scp,
                                                       "$project.proto_dir/proto", "$project.cmp_model_dir/init.mmf",
                                                       project.mono_mlf_filename, "$project.cmp_model_dir/HInit")
 
 
                             // HInit
-                            project.hts_wrapper.HRest(phone, project.train_scp,
+                            project.configuration.hts_wrapper.HRest(phone, project.train_scp,
                                                       "$project.cmp_model_dir/HInit", "$project.cmp_model_dir/init.mmf",
                                                       project.mono_mlf_filename,
                                                       "$project.cmp_model_dir/HRest", "$project.dur_model_dir/HRest")
@@ -100,6 +100,7 @@ class MonophoneStages {
         project.task('generateMonophoneMMF', dependsOn: 'initialiseMonophoneModels')
         {
             inputs.files "$project.buildDir/achievedstages/initialiseMonophoneModels"
+            inputs.files "$project.cmp_model_dir/HInit", "$project.cmp_model_dir/HRest"
             outputs.files "$project.buildDir/achievedstages/generateMonophoneMMF"
 
             doLast {
@@ -115,9 +116,6 @@ class MonophoneStages {
                     }
                 }
 
-                monophone_set.each { phone ->
-                    inputs.files "$project.cmp_model_dir/HInit/$phone", "$project.cmp_model_dir/HRest/$phone"
-                }
 
                 // Generate HHEd script
                 project.copy {
@@ -143,11 +141,11 @@ class MonophoneStages {
                 (new File(project.hhed_script_dir + "/lvf.dur.hed")).write(content)
 
 
-                project.hts_wrapper.HHEdOnDir(project.hhed_script_dir + "/lvf.cmp.hed", project.mono_list_filename,
+                project.configuration.hts_wrapper.HHEdOnDir(project.hhed_script_dir + "/lvf.cmp.hed", project.mono_list_filename,
                                               project.cmp_model_dir + "/HRest", project.cmp_model_dir + "/monophone.mmf")
 
 
-                project.hts_wrapper.HHEdOnDir(project.hhed_script_dir + "/lvf.dur.hed", project.mono_list_filename,
+                project.configuration.hts_wrapper.HHEdOnDir(project.hhed_script_dir + "/lvf.dur.hed", project.mono_list_filename,
                                               project.dur_model_dir + "/HRest", project.dur_model_dir + "/monophone.mmf")
 
 
@@ -170,7 +168,7 @@ class MonophoneStages {
 
                             k = (i / project.configuration.user_configuration.settings.daem.nIte) ** project.configuration.user_configuration.settings.daem.alpha
 
-                            project.hts_wrapper.HERest(project.train_scp,
+                            project.configuration.hts_wrapper.HERest(project.train_scp,
                                                        project.mono_list_filename,
                                                        project.mono_mlf_filename,
                                                        project.cmp_model_dir + "/monophone.mmf",
@@ -185,7 +183,7 @@ class MonophoneStages {
                         //
                         println("\n\nIteration $i of Embedded Re-estimation")
 
-                        project.hts_wrapper.HERest(project.train_scp,
+                        project.configuration.hts_wrapper.HERest(project.train_scp,
                                                    project.mono_list_filename,
                                                    project.mono_mlf_filename,
                                                    project.cmp_model_dir + "/monophone.mmf",

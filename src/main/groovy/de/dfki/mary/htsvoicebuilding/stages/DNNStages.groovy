@@ -38,7 +38,7 @@ class DNNStages
             outputs.files output
             doLast {
                 def qconf = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.settings.dnn.qconf)));
-                withPool(project.nb_proc)
+                withPool(project.configuration.nb_proc)
                 {
                     def file_list = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).readLines() as List
                     file_list.eachParallel { cur_file ->

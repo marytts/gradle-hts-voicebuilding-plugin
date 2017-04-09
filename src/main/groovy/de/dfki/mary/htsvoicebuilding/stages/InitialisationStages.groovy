@@ -215,7 +215,7 @@ class InitialisationStages {
             doLast {
                 // CMP parts
                 //   1. Get average model
-                project.hts_wrapper.HCompV(project.train_scp,
+                project.configuration.hts_wrapper.HCompV(project.train_scp,
                                            "$project.proto_dir/proto",
                                            "average.mmf",
                                            project.cmp_model_dir)

@@ -30,49 +30,8 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
 
         project.sourceCompatibility = JavaVersion.VERSION_1_7
 
-        // Load configuration
-        def slurper = new JsonSlurper()
-        def config_file =  project.rootProject.config_file
-        def config = slurper.parseText( config_file.text )
-
-        // Adapt pathes
-        DataFileFinder.project_path = new File(getClass().protectionDomain.codeSource.location.path).parent
-        if (config.data.project_dir) {
-            DataFileFinder.project_path = config.data.project_dir
-        }
-
-        def beams = config.settings.training.beam.split() as List
-        def nb_proc_local = 1;
-
-        if (project.gradle.startParameter.isParallelProjectExecutionEnabled()) {
-            nb_proc_local = project.gradle.startParameter.getMaxWorkerCount();
-            if (config.settings.nb_proc) {
-                if (config.settings.nb_proc > nb_proc_local) {
-                    throw Exception("You will overload your machine, preventing stop !")
-                }
-
-                nb_proc_local = config.settings.nb_proc
-            }
-        }
 
         project.ext {
-            maryttsVersion = '5.1.2'
-            maryttsSrcDir = "$project.buildDir/marytts/src/main/java"
-            maryttsResourcesDir = "$project.buildDir/marytts/src/main/resources"
-            // maryttsTestSrcDir = "$project.buildDir/marytts/"
-            new ConfigSlurper().parse(project.rootProject.file('voice.groovy').text).each { key, value ->
-                set key, value
-            }
-            voice.nameCamelCase = voice.name?.split(/[^_A-Za-z0-9]/).collect { it.capitalize() }.join()
-            voice.locale = voice.locale?.country ? new Locale(voice.locale.language, voice.locale.country) : new Locale(voice.locale.language)
-            voice.localeXml = [voice.locale.language, voice.locale.country].join('-')
-            voice.maryLocaleXml = voice.locale.language.equalsIgnoreCase(voice.locale.country) ? voice.locale.language : voice.localeXml
-            basenames = project.rootProject.subprojects.findAll { it.parent.name == 'data' }.collect { it.name }
-
-            export_dir = "${project.buildDir}/marytts/src/main/resources/marytts/voice/${voice.name}"
-
-            // User configuration
-            user_configuration = config;
 
             // Scp
             train_scp = "$project.buildDir/train.scp"
@@ -117,37 +76,44 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
 
             trained_files = new HashMap()
 
-            // Nb processes
-            nb_proc = nb_proc_local
-
             // HTS wrapper
             utils_dir = "$project.buildDir/tmp/utils"
-            def debug = false
-            if (config.settings.debug) {
-                debug = true
-            }
-            hts_wrapper = new HTSWrapper(beams, "$project.train_config_filename",
-                                         config.settings.training.wf, nb_proc_local,
-                                         "$project.buildDir/tmp/utils/HERest.pl", debug)
-
             template_dir = "$project.buildDir/tmp/templates"
 
         }
 
-        project.status = project.version.endsWith('SNAPSHOT') ? 'integration' : 'release'
-
         project.task("configuration") {
-            ext.user_configuration = project.user_configuration
+
+            dependsOn "configurationVoiceBuilding"
+
+            // Adapt pathes
+            DataFileFinder.project_path = new File(getClass().protectionDomain.codeSource.location.path).parent
+            if (project.configurationVoiceBuilding.user_configuration.data.project_dir) {
+                DataFileFinder.project_path = project.configurationVoiceBuilding.user_configuration.data.project_dir
+            }
+
+            println(DataFileFinder.project_path)
+
+            // User configuration
+            ext.user_configuration = project.configurationVoiceBuilding.hasProperty("user_configuration") ? project.configurationVoiceBuilding.user_configuration : null
+            ext.nb_proc = project.configurationVoiceBuilding.hasProperty("nb_proc") ? project.configurationVoiceBuilding.nb_proc : 1
+
+            def debug = false
+            if (project.configurationVoiceBuilding.user_configuration.settings.debug) {
+                debug = true
+            }
+            def beams = project.configurationVoiceBuilding.user_configuration.settings.training.beam.split() as List
+            ext.hts_wrapper = new HTSWrapper(beams, "$project.train_config_filename",
+                                         project.configurationVoiceBuilding.user_configuration.settings.training.wf, project.configuration.nb_proc,
+                                         "$project.buildDir/tmp/utils/HERest.pl", debug)
+
+
+
         }
+
         addPrepareEnvironmentTask(project)
 
         project.afterEvaluate {
-            project.dependencies {
-                compile "de.dfki.mary:marytts-lang-$project.voice.locale.language:$project.maryttsVersion"
-                testCompile "junit:junit:4.11"
-            }
-
-
             // Add the tasks
             InitialisationStages.addTasks(project)
             MonophoneStages.addTasks(project)
@@ -302,7 +268,6 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
 
         project.task('exportRAW', dependsOn: 'exportPreparation')
         {
-            outputs.files project.fileTree("$project.export_dir")
             doLast {
                 Raw.export(project)
             }
@@ -313,19 +278,8 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
          ** MaryTTS
          ******************************/
         project.task('prepareMary') {
-            def serviceLoaderFile = project.file("$project.maryttsResourcesDir/META-INF/services/marytts.config.MaryConfig")
-
-            // FIXME: Inputs & Outputs
-            outputs.files serviceLoaderFile
-            outputs.files project.fileTree("$project.export_dir")
 
             doLast {
-                MaryTTS.export(project)
-
-                // Generate Service loader :
-                serviceLoaderFile.parentFile.mkdirs()
-                serviceLoaderFile.text = "marytts.voice.${project.voice.name}.Config"
-                project.processResources {project.fileTree("$project.export_dir")}
             }
         }
 

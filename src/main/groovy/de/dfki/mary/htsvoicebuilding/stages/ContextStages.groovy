@@ -68,7 +68,7 @@ class ContextStages
 
                 (new File(project.hhed_script_dir + "/m2f.cmp.hed")).write(content)
 
-                project.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/m2f.cmp.hed", project.mono_list_filename,
+                project.configuration.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/m2f.cmp.hed", project.mono_list_filename,
                                               project.cmp_model_dir + "/monophone.mmf", project.cmp_model_dir + "/fullcontext.mmf.0",
                                               [])
 
@@ -84,7 +84,7 @@ class ContextStages
                 }
                 (new File(project.hhed_script_dir + "/m2f.dur.hed")).write(content)
 
-                project.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/m2f.dur.hed", project.mono_list_filename,
+                project.configuration.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/m2f.dur.hed", project.mono_list_filename,
                                               project.dur_model_dir + "/monophone.mmf", project.dur_model_dir + "/fullcontext.mmf.0",
                                               [])
 
@@ -100,7 +100,7 @@ class ContextStages
             doLast {
                 for (i in 1..project.configuration.user_configuration.settings.training.nIte)
                 {
-                    project.hts_wrapper.HERest(project.train_scp,
+                    project.configuration.hts_wrapper.HERest(project.train_scp,
                                                project.full_list_filename, project.full_mlf_filename,
                                                project.cmp_model_dir + "/fullcontext.mmf.0",
                                                project.dur_model_dir + "/fullcontext.mmf.0",
@@ -141,7 +141,7 @@ class ContextStages
                         streams << stream
                     }
 
-                    withPool(project.nb_proc) {
+                    withPool(project.configuration.nb_proc) {
                         streams.eachParallel() { stream ->
                             // FIXME: Define indexes
                             def end_stream = project_cur_stream
@@ -186,7 +186,7 @@ class ContextStages
                                 params += ["-m", "-a", stream.mdlf]
                             }
 
-                            project.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "cxc_" + stream.name + "." + local_cur_clus_it + ".hed",
+                            project.configuration.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "cxc_" + stream.name + "." + local_cur_clus_it + ".hed",
                                                           project.full_list_filename,
                                                           project.cmp_model_dir + "/fullcontext.mmf." + local_cur_clus_it,
                                                           "$project.cmp_model_dir/clustered.mmf.${stream.name}.$local_cur_clus_it",
@@ -229,7 +229,7 @@ class ContextStages
                             join_script.append("\n")
                         }
 
-                        project.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/join.hed." + local_cur_clus_it,
+                        project.configuration.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/join.hed." + local_cur_clus_it,
                                                       project.full_list_filename,
                                                       project.cmp_model_dir + "/clustered.mmf." + local_cur_clus_it,
                                                       project.cmp_model_dir + "/clustered.mmf." + local_cur_clus_it,
@@ -295,7 +295,7 @@ class ContextStages
                         params += ["-m", "-a", project.configuration.user_configuration.models.dur.mdlf]
                     }
 
-                    project.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "cxc_dur.hed." + local_cur_clus_it,
+                    project.configuration.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "cxc_dur.hed." + local_cur_clus_it,
                                                   project.full_list_filename,
                                                   project.dur_model_dir + "/clustered.mmf." + local_cur_clus_it,
                                                   project.dur_model_dir + "/clustered.mmf." + local_cur_clus_it,
@@ -314,7 +314,7 @@ class ContextStages
 
                     for (i in 1..project.configuration.user_configuration.settings.training.nIte) {
 
-                        project.hts_wrapper.HERest(project.train_scp,
+                        project.configuration.hts_wrapper.HERest(project.train_scp,
                                                    project.full_list_filename,
                                                    project.full_mlf_filename,
                                                    project.cmp_model_dir + "/clustered.mmf." + local_cur_clus_it,
@@ -367,7 +367,7 @@ class ContextStages
 
                     //  2. untying
                     doLast {
-                        project.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/untying_cmp.hhed",
+                        project.configuration.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/untying_cmp.hhed",
                                                       project.full_list_filename,
                                                       project.cmp_model_dir + "/clustered.mmf." + local_cur_clus_it,
                                                       project.cmp_model_dir + "/fullcontext.mmf"  + "." + (local_cur_clus_it+1),
@@ -392,7 +392,7 @@ class ContextStages
 
                     //  2. untying
                     doLast {
-                        project.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/untying_dur.hhed",
+                        project.configuration.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/untying_dur.hhed",
                                                       project.full_list_filename,
                                                       project.dur_model_dir + "/clustered.mmf." + local_cur_clus_it,
                                                       project.dur_model_dir + "/fullcontext.mmf"  + "." + (local_cur_clus_it+1),
@@ -411,7 +411,7 @@ class ContextStages
 
                         for (i in 1..project.configuration.user_configuration.settings.training.nIte) {
 
-                            project.hts_wrapper.HERest(project.train_scp,
+                            project.configuration.hts_wrapper.HERest(project.train_scp,
                                                        project.full_list_filename,
                                                        project.full_mlf_filename,
                                                        project.cmp_model_dir + "/fullcontext.mmf." + (local_cur_clus_it+1),
