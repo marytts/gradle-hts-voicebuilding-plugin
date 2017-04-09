@@ -28,22 +28,24 @@ class ContextStages
         {
             outputs.files project.full_mlf_filename, project.full_list_filename
 
-            // 1. Generate MLF
-            def mlf_file = new File(project.full_mlf_filename)
-            mlf_file.write("#!MLF!#\n")
-            mlf_file.append('"*/*.lab" -> "' + DataFileFinder.getFilePath(project.user_configuration.data.full_lab_dir) +'"')
+            doLast {
+                // 1. Generate MLF
+                def mlf_file = new File(project.full_mlf_filename)
+                mlf_file.write("#!MLF!#\n")
+                mlf_file.append('"*/*.lab" -> "' + DataFileFinder.getFilePath(project.configuration.user_configuration.data.full_lab_dir) +'"')
 
-            // 2. From known full_lab_dir and train scp infos
-            def model_set = new HashSet()
-            (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).eachLine{ cur_file ->
-                def basename = (new File(cur_file)).name
-                (new File(DataFileFinder.getFilePath(project.user_configuration.data.full_lab_dir + "/" + basename + ".lab"))).eachLine { line ->
+                // 2. From known full_lab_dir and train scp infos
+                def model_set = new HashSet()
+                (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
+                    def basename = (new File(cur_file)).name
+                    (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.full_lab_dir + "/" + basename + ".lab"))).eachLine { line ->
 
-                    def line_arr = line =~ /^[ \t]*([0-9]+)[ \t]+([0-9]+)[ \t]+(.+)/
-                    model_set.add(line_arr[0][3])
+                        def line_arr = line =~ /^[ \t]*([0-9]+)[ \t]+([0-9]+)[ \t]+(.+)/
+                        model_set.add(line_arr[0][3])
+                    }
                 }
+                (new File(project.full_list_filename)).write(model_set.join("\n"))
             }
-            (new File(project.full_list_filename)).write(model_set.join("\n"))
         }
 
         project.task('generateFullcontextFromMonophone', dependsOn:['generateFulllist', 'trainMonophoneMMF'])
@@ -96,7 +98,7 @@ class ContextStages
             outputs.files "$project.buildDir/achievedstages/trainFullContext0"
 
             doLast {
-                for (i in 1..project.user_configuration.settings.training.nIte)
+                for (i in 1..project.configuration.user_configuration.settings.training.nIte)
                 {
                     project.hts_wrapper.HERest(project.train_scp,
                                                project.full_list_filename, project.full_mlf_filename,
@@ -112,7 +114,7 @@ class ContextStages
         }
 
 
-        for (def cur_clus_it=0; cur_clus_it < project.user_configuration.settings.training.nb_clustering; cur_clus_it++)
+        for (def cur_clus_it=0; cur_clus_it < project.configuration.user_configuration.settings.training.nb_clustering; cur_clus_it++)
         {
             def local_cur_clus_it = cur_clus_it
 
@@ -127,7 +129,7 @@ class ContextStages
 
                     // Prepare parallelism part !
                     def streams = []
-                    project.user_configuration.models.cmp.streams.each { stream ->
+                    project.configuration.user_configuration.models.cmp.streams.each { stream ->
                         // FIXME: Define indexes
                         stream.start = project_cur_stream
                         stream.end   = project_cur_stream
@@ -150,7 +152,7 @@ class ContextStages
 
                             def streamname = stream.name
 
-                            def questions_file = (new File(DataFileFinder.getFilePath(project.user_configuration.data.question_file)))
+                            def questions_file = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.question_file)))
 
                             //   2. generate HHEd scripts
                             project.copy {
@@ -162,7 +164,7 @@ class ContextStages
 
                                 def questions = questions_file.text
                                 def streamline = ""
-                                for (i in 2..project.user_configuration.models.global.nb_emitting_states+1) {
+                                for (i in 2..project.configuration.user_configuration.models.global.nb_emitting_states+1) {
                                     streamline += "TB " + stream.thr + " " + stream.name +  "_s" + i + "_ "
                                     streamline += "{*.state[" + i + "].stream[" + stream.start +  "-" + (stream.end)+ "]}\n"
                                 }
@@ -194,7 +196,7 @@ class ContextStages
 
                     // Join (only if more than one stream are used)
                     //   1. copy the first stream models
-                    def tmp_stream = project.user_configuration.models.cmp.streams[0]
+                    def tmp_stream = project.configuration.user_configuration.models.cmp.streams[0]
                     project.copy {
                         from project.cmp_model_dir
                         into project.cmp_model_dir
@@ -203,13 +205,13 @@ class ContextStages
                     }
 
                     //  2. join the other one
-                    if (project.user_configuration.models.cmp.streams.size() > 1) {
+                    if (project.configuration.user_configuration.models.cmp.streams.size() > 1) {
 
                         def join_script = new File(project.hhed_script_dir + "/join.hed." + local_cur_clus_it)
                         join_script.write("")
-                        for(def s=0; s<project.user_configuration.models.global.nb_emitting_states; s++) {
+                        for(def s=0; s<project.configuration.user_configuration.models.global.nb_emitting_states; s++) {
                             def cur_stream = 1
-                            project.user_configuration.models.cmp.streams.each { stream ->
+                            project.configuration.user_configuration.models.cmp.streams.each { stream ->
 
                                 def end_stream = cur_stream
                                 if (stream.is_msd) {
@@ -240,7 +242,7 @@ class ContextStages
 
             project.task("clusteringDUR" + cur_clus_it, dependsOn: "trainFullContext" + local_cur_clus_it)
             {
-                def questions_file = (new File(DataFileFinder.getFilePath(project.user_configuration.data.question_file)))
+                def questions_file = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.question_file)))
                 inputs.files questions_file, project.dur_model_dir + "/stats." + local_cur_clus_it
                 inputs.files "$project.buildDir/achievedstages/trainFullcontext" + local_cur_clus_it
                 outputs.files "$project.buildDir/achievedstages/clusteringDUR" + local_cur_clus_it, project.tree_dir + "/dur." + local_cur_clus_it + ".inf"
@@ -275,9 +277,9 @@ class ContextStages
                         rename {file -> "cxc_dur.hed." + local_cur_clus_it}
 
                         def questions = questions_file.text
-                        def streamline = "TB " + project.user_configuration.models.dur.thr + " dur_s2_ {*.state[2].stream[1-5]}"
+                        def streamline = "TB " + project.configuration.user_configuration.models.dur.thr + " dur_s2_ {*.state[2].stream[1-5]}"
                         def binding = [
-                        GAM : sprintf("%03d", project.user_configuration.models.dur.gam),
+                        GAM : sprintf("%03d", project.configuration.user_configuration.models.dur.gam),
                         STATSFILE:project.dur_model_dir + "/stats." + local_cur_clus_it,
                         QUESTIONS:questions,
                         STREAMLINE:streamline,
@@ -289,8 +291,8 @@ class ContextStages
 
                     //   3. build the decision tree
                     def params = ["-C", project.config_dir + "/dur.cfg"]
-                    if (project.user_configuration.models.dur.thr == 0) {
-                        params += ["-m", "-a", project.user_configuration.models.dur.mdlf]
+                    if (project.configuration.user_configuration.models.dur.thr == 0) {
+                        params += ["-m", "-a", project.configuration.user_configuration.models.dur.mdlf]
                     }
 
                     project.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "cxc_dur.hed." + local_cur_clus_it,
@@ -310,7 +312,7 @@ class ContextStages
 
                 doLast {
 
-                    for (i in 1..project.user_configuration.settings.training.nIte) {
+                    for (i in 1..project.configuration.user_configuration.settings.training.nIte) {
 
                         project.hts_wrapper.HERest(project.train_scp,
                                                    project.full_list_filename,
@@ -328,7 +330,7 @@ class ContextStages
             }
 
 
-            if (local_cur_clus_it  < (project.user_configuration.settings.training.nb_clustering)) {
+            if (local_cur_clus_it  < (project.configuration.user_configuration.settings.training.nb_clustering)) {
 
                 project.task("untyingCMP" + cur_clus_it, dependsOn: "trainClusteredModels" + cur_clus_it) {
 
@@ -340,20 +342,20 @@ class ContextStages
                     def cmp_untying_file = new File(project.hhed_script_dir + "/untying_cmp.hhed")
 
                     cmp_untying_file.write("// untie parameter sharing structure\n")
-                    project.user_configuration.models.cmp.streams.each { stream ->
+                    project.configuration.user_configuration.models.cmp.streams.each { stream ->
 
                         def end_stream = cur_stream
                         if (stream.is_msd) {
                             end_stream += stream.winfiles.size() - 1
                         }
 
-                        if (project.user_configuration.models.cmp.streams.size() > 1) {
-                            for (i in 2..project.user_configuration.models.global.nb_emitting_states+1)
+                        if (project.configuration.user_configuration.models.cmp.streams.size() > 1) {
+                            for (i in 2..project.configuration.user_configuration.models.global.nb_emitting_states+1)
                             {
                                 cmp_untying_file.append("UT {*.state[$i].stream[$cur_stream-$end_stream]}\n")
                             }
                         }  else {
-                            for (i in 2..project.user_configuration.models.global.nb_emitting_states+1)
+                            for (i in 2..project.configuration.user_configuration.models.global.nb_emitting_states+1)
                             {
                                 cmp_untying_file.append("UT {*.state[$i]\n}")
                             }
@@ -407,7 +409,7 @@ class ContextStages
 
                     doLast {
 
-                        for (i in 1..project.user_configuration.settings.training.nIte) {
+                        for (i in 1..project.configuration.user_configuration.settings.training.nIte) {
 
                             project.hts_wrapper.HERest(project.train_scp,
                                                        project.full_list_filename,

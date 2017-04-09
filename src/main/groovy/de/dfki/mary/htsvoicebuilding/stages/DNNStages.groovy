@@ -33,14 +33,14 @@ class DNNStages
             def mkf_script_file = "$project.utils_dir/makefeature.pl";
             output = "$dnn_output_dir/ffi"
 
-            def val = 1E+4 * project.user_configuration.signal.frameshift; // FIXME: why this frameshift
+            def val = 1E+4 * project.configuration.user_configuration.signal.frameshift; // FIXME: why this frameshift
 
             outputs.files output
             doLast {
-                def qconf = (new File(DataFileFinder.getFilePath(project.user_configuration.settings.dnn.qconf)));
+                def qconf = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.settings.dnn.qconf)));
                 withPool(project.nb_proc)
                 {
-                    def file_list = (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).readLines() as List
+                    def file_list = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).readLines() as List
                     file_list.eachParallel { cur_file ->
                         String command = "perl $mkf_script_file $qconf $val ${project.tasks.generateStateForceAlignment.output}/${cur_file}.lab | x2x +af > $output/${cur_file}.ffi".toString()
                         HTSWrapper.executeOnShell(command)
@@ -56,7 +56,7 @@ class DNNStages
                 def output_file = new File("$output/train_dnn.scp")
                 output_file.text = ""
                 def ffo_dir = project.buildDir.toString() + "/ffo" // TODO: properly dealing with that
-                (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).eachLine { cur_file ->
+                (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine { cur_file ->
                     output_file << "${project.tasks.makeFeatures.output}/${cur_file}.ffi $ffo_dir/${cur_file}.ffo" + System.getProperty("line.separator")
                 }
             }
@@ -69,10 +69,10 @@ class DNNStages
             doLast {
 
                 def vec_size = 0
-                project.user_configuration.models.ffo.streams.each { stream ->
+                project.configuration.user_configuration.models.ffo.streams.each { stream ->
                     vec_size += (stream.order + 1) * stream.winfiles.size()
                 }
-                def dnn_settings = project.user_configuration.settings.dnn
+                def dnn_settings = project.configuration.user_configuration.settings.dnn
 
                 // Now adapt the proto template
                 def binding = [
@@ -118,7 +118,7 @@ class DNNStages
 
             doLast {
                 def ffodim = 0
-                project.user_configuration.models.ffo.streams.each { stream ->
+                project.configuration.user_configuration.models.ffo.streams.each { stream ->
                     ffodim += (stream.order + 1) * stream.winfiles.size()
                 }
                 def command_global_var = "cat $project.buildDir/ffo/*.ffo | vstat -l $ffodim -d -o 2 > $output/global.var"
@@ -126,7 +126,7 @@ class DNNStages
 
 
                 def start = 0
-                project.user_configuration.models.ffo.streams.each { stream ->
+                project.configuration.user_configuration.models.ffo.streams.each { stream ->
                     def dim = (stream.order + 1) * stream.winfiles.size()
                     if (stream.stats)
                     {

@@ -31,33 +31,33 @@ class MonophoneStages {
         {
             outputs.files "$project.buildDir/achievedstages/initialiseMonophoneModels"
 
-            // FIXME: use the list !
-            def monophone_set = new HashSet()
-            (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).eachLine{ cur_file ->
-                def basename = (new File(cur_file)).name
-
-                // Analyse file
-                (new File(DataFileFinder.getFilePath(project.user_configuration.data.mono_lab_dir + "/" + basename + ".lab"))).eachLine { cur_lab ->
-                    def line_arr = cur_lab =~ /^[ \t]*([0-9]+)[ \t]+([0-9]+)[ \t]+(.+)/
-                    monophone_set.add(line_arr[0][3])
-                }
-            }
 
             inputs.files project.mono_mlf_filename,  "$project.cmp_model_dir/average.mmf", \
             "$project.cmp_model_dir/init.mmf", "$project.dur_model_dir/average.mmf"
-            monophone_set.each { phone ->
-                outputs.files "$project.cmp_model_dir/HInit/$phone", "$project.cmp_model_dir/HRest/$phone"
-            }
+            outputs.files "$project.cmp_model_dir/HInit/", "$project.cmp_model_dir/HRest/"
 
             // Generate project
             doLast {
+                // FIXME: use the list !
+                def monophone_set = new HashSet()
+                (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
+                    def basename = (new File(cur_file)).name
+
+                    // Analyse file
+                    (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.mono_lab_dir + "/" + basename + ".lab"))).eachLine { cur_lab ->
+                        def line_arr = cur_lab =~ /^[ \t]*([0-9]+)[ \t]+([0-9]+)[ \t]+(.+)/
+                        monophone_set.add(line_arr[0][3])
+                    }
+                }
+
+
                 withPool(project.nb_proc) {
                     monophone_set.eachParallel { phone ->
                         // inputs.files project.mono_mlf_filename,  "$project.cmp_model_dir/average.mmf", \
                         // "$project.cmp_model_dir/init.mmf", "$project.dur_model_dir/average.mmf"
                         // outputs.files "$project.cmp_model_dir/HInit/$phone", "$project.cmp_model_dir/HRest/$phone"
 
-                        if (project.user_configuration.settings.daem.use) {
+                        if (project.configuration.user_configuration.settings.daem.use) {
                             println("use average model instead of $phone")
 
                             // CMP
@@ -102,47 +102,47 @@ class MonophoneStages {
             inputs.files "$project.buildDir/achievedstages/initialiseMonophoneModels"
             outputs.files "$project.buildDir/achievedstages/generateMonophoneMMF"
 
-            // FIXME: use the list !
-            def monophone_set = new HashSet()
-            (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).eachLine{ cur_file ->
-                def basename = (new File(cur_file)).name
-
-                // Analyse file
-                (new File(DataFileFinder.getFilePath(project.user_configuration.data.mono_lab_dir + "/" + basename + ".lab"))).eachLine { cur_lab ->
-                    def line_arr = cur_lab =~ /^[ \t]*([0-9]+)[ \t]+([0-9]+)[ \t]+(.+)/
-                    monophone_set.add(line_arr[0][3])
-                }
-            }
-
-            monophone_set.each { phone ->
-                inputs.files "$project.cmp_model_dir/HInit/$phone", "$project.cmp_model_dir/HRest/$phone"
-            }
-
-            // Generate HHEd script
-            project.copy {
-                from project.template_dir
-                into project.hhed_script_dir
-
-                include 'lvf.hed'
-                rename { file -> "lvf.cmp.hed"}
-                def binding = [
-                STARTSTATE:2,
-                ENDSTATE:project.user_configuration.models.global.nb_emitting_states+1,
-                VFLOORFILE:project.cmp_model_dir + "/vFloors",
-                NB_STREAMS: project.user_configuration.models.cmp.streams.size()
-                ]
-
-                expand(binding)
-            }
-
-
-            // Generate HHEd script
-            def content = "// Load variance flooring macro\n"
-            content += "FV \"" + project.dur_model_dir + "/vFloors\""
-            (new File(project.hhed_script_dir + "/lvf.dur.hed")).write(content)
-
-
             doLast {
+                // FIXME: use the list !
+                def monophone_set = new HashSet()
+                (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
+                    def basename = (new File(cur_file)).name
+
+                    // Analyse file
+                    (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.mono_lab_dir + "/" + basename + ".lab"))).eachLine { cur_lab ->
+                        def line_arr = cur_lab =~ /^[ \t]*([0-9]+)[ \t]+([0-9]+)[ \t]+(.+)/
+                        monophone_set.add(line_arr[0][3])
+                    }
+                }
+
+                monophone_set.each { phone ->
+                    inputs.files "$project.cmp_model_dir/HInit/$phone", "$project.cmp_model_dir/HRest/$phone"
+                }
+
+                // Generate HHEd script
+                project.copy {
+                    from project.template_dir
+                    into project.hhed_script_dir
+
+                    include 'lvf.hed'
+                    rename { file -> "lvf.cmp.hed"}
+                    def binding = [
+                        STARTSTATE:2,
+                                   ENDSTATE:project.configuration.user_configuration.models.global.nb_emitting_states+1,
+                                   VFLOORFILE:project.cmp_model_dir + "/vFloors",
+                                   NB_STREAMS: project.configuration.user_configuration.models.cmp.streams.size()
+                    ]
+
+                    expand(binding)
+                }
+
+
+                // Generate HHEd script
+                def content = "// Load variance flooring macro\n"
+                content += "FV \"" + project.dur_model_dir + "/vFloors\""
+                (new File(project.hhed_script_dir + "/lvf.dur.hed")).write(content)
+
+
                 project.hts_wrapper.HHEdOnDir(project.hhed_script_dir + "/lvf.cmp.hed", project.mono_list_filename,
                                               project.cmp_model_dir + "/HRest", project.cmp_model_dir + "/monophone.mmf")
 
@@ -161,14 +161,14 @@ class MonophoneStages {
             outputs.files "$project.buildDir/achievedstages/trainMonophoneMMF"
 
             doLast {
-                if (project.user_configuration.settings.daem.use) {
-                    for (i in 1..project.user_configuration.settings.daem.nIte) {
-                        for (j in 1..project.user_configuration.settings.training.nIte) {
+                if (project.configuration.user_configuration.settings.daem.use) {
+                    for (i in 1..project.configuration.user_configuration.settings.daem.nIte) {
+                        for (j in 1..project.configuration.user_configuration.settings.training.nIte) {
                             //
-                            def k = j + (i-1) ** project.user_configuration.settings.training.nIte
+                            def k = j + (i-1) ** project.configuration.user_configuration.settings.training.nIte
                             println("\n\nIteration $k of Embedded Re-estimation")
 
-                            k = (i / project.user_configuration.settings.daem.nIte) ** project.user_configuration.settings.daem.alpha
+                            k = (i / project.configuration.user_configuration.settings.daem.nIte) ** project.configuration.user_configuration.settings.daem.alpha
 
                             project.hts_wrapper.HERest(project.train_scp,
                                                        project.mono_list_filename,
@@ -181,7 +181,7 @@ class MonophoneStages {
                         }
                     }
                 } else {
-                    for (i in 1..project.user_configuration.settings.training.nIte) {
+                    for (i in 1..project.configuration.user_configuration.settings.training.nIte) {
                         //
                         println("\n\nIteration $i of Embedded Re-estimation")
 

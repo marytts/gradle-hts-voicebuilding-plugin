@@ -136,37 +136,9 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
 
         project.status = project.version.endsWith('SNAPSHOT') ? 'integration' : 'release'
 
-        project.repositories {
-            jcenter()
-            maven {
-                url 'http://oss.jfrog.org/artifactory/repo'
-            }
+        project.task("configuration") {
+            ext.user_configuration = project.user_configuration
         }
-
-        project.sourceSets {
-            main {
-                java {
-                    srcDir project.maryttsSrcDir
-                }
-                resources {
-                    srcDir project.maryttsResourcesDir
-                }
-            }
-            // test {
-            //     java {
-            //         srcDir project.generatedTestSrcDir
-            //     }
-            // }
-        }
-
-
-        project.jar.manifest {
-            attributes('Created-By': "${System.properties['java.version']} (${System.properties['java.vendor']})",
-            'Built-By': System.properties['user.name'],
-            'Built-With': "gradle-${project.gradle.gradleVersion}, groovy-${GroovySystem.version}")
-        }
-
-
         addPrepareEnvironmentTask(project)
 
         project.afterEvaluate {
@@ -174,6 +146,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
                 compile "de.dfki.mary:marytts-lang-$project.voice.locale.language:$project.maryttsVersion"
                 testCompile "junit:junit:4.11"
             }
+
 
             // Add the tasks
             InitialisationStages.addTasks(project)
@@ -194,6 +167,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
     {
         project.task('prepareEnvironment')
         {
+            dependsOn "configuration"
 
             // Create model and trees directories
             new File(project.proto_dir).mkdirs()
@@ -212,7 +186,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
             // Specific initialisation directory
             new File(project.cmp_model_dir + "/HRest").mkdirs()
             new File(project.dur_model_dir + "/HRest").mkdirs()
-            if (!project.user_configuration.settings.daem.use) {
+            if (!project.configuration.user_configuration.settings.daem.use) {
                 new File(project.cmp_model_dir + "/HInit").mkdirs()
                 new File(project.dur_model_dir + "/Hinit").mkdirs()
             }
@@ -276,14 +250,14 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
      ** Export stages
      ****************************************************************************************/
     private void addExportingTasks(Project project) {
-        project.task('training', dependsOn: "trainClusteredModels" + (project.user_configuration.settings.training.nb_clustering - 1))
+        project.task('training', dependsOn: "trainClusteredModels" + (project.configuration.user_configuration.settings.training.nb_clustering - 1))
         {
-            if (project.user_configuration.gv.use) {
+            if (project.configuration.user_configuration.gv.use) {
                 dependsOn.add("trainGV")
             }
 
-            if ((project.user_configuration.settings.training.kind) &&
-                (project.user_configuration.settings.training.kind.equals("dnn")))
+            if ((project.configuration.user_configuration.settings.training.kind) &&
+                (project.configuration.user_configuration.settings.training.kind.equals("dnn")))
             {
                 dependsOn.add("trainDNN")
             }
@@ -293,33 +267,33 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
         {
             doLast {
                 // Models
-                project.trained_files.put("mmf_cmp", project.cmp_model_dir + "/clustered.mmf." + (project.user_configuration.settings.training.nb_clustering - 1))
-                project.trained_files.put("mmf_dur", project.dur_model_dir + "/clustered.mmf." + (project.user_configuration.settings.training.nb_clustering - 1))
+                project.trained_files.put("mmf_cmp", project.cmp_model_dir + "/clustered.mmf." + (project.configuration.user_configuration.settings.training.nb_clustering - 1))
+                project.trained_files.put("mmf_dur", project.dur_model_dir + "/clustered.mmf." + (project.configuration.user_configuration.settings.training.nb_clustering - 1))
 
-                if (project.user_configuration.gv.use) {
+                if (project.configuration.user_configuration.gv.use) {
                     project.trained_files.put("mmf_gv", project.gv_dir + "/clustered.mmf")
                 }
 
 
                 // Tree files
-                project.user_configuration.models.cmp.streams.each { stream ->
+                project.configuration.user_configuration.models.cmp.streams.each { stream ->
                     project.trained_files.put(stream.name + "_tree",
-                                              project.tree_dir + "/" + stream.name  + "." + (project.user_configuration.settings.training.nb_clustering - 1) + ".inf")
+                                              project.tree_dir + "/" + stream.name  + "." + (project.configuration.user_configuration.settings.training.nb_clustering - 1) + ".inf")
 
-                    if (project.user_configuration.gv.use) {
+                    if (project.configuration.user_configuration.gv.use) {
                         project.trained_files.put(stream.name + "_tree_gv",
                                                   project.gv_dir + "/" + stream.name  + ".inf")
                     }
                 }
 
                 project.trained_files.put("dur_tree",
-                                          project.tree_dir + "/dur." + (project.user_configuration.settings.training.nb_clustering - 1) + ".inf")
+                                          project.tree_dir + "/dur." + (project.configuration.user_configuration.settings.training.nb_clustering - 1) + ".inf")
 
                 // Lists
                 project.trained_files.put("full_list",
                                           project.full_list_filename)
 
-                if (project.user_configuration.gv.use) {
+                if (project.configuration.user_configuration.gv.use) {
                     project.trained_files.put("list_gv",
                                               project.list_dir + "/gv.list")
                 }
@@ -370,13 +344,13 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
         project.task('run')
         {
             // RAW
-            if (project.user_configuration.output.raw) {
+            if (project.configuration.user_configuration.output.raw) {
                 dependsOn "exportRAW"
             }
 
 
             // RAW
-            if (project.user_configuration.output.marytts) {
+            if (project.configuration.user_configuration.output.marytts) {
                 dependsOn "exportMaryTTS"
             }
         }

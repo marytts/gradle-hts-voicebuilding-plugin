@@ -9,7 +9,7 @@ import org.apache.commons.io.FileUtils;
 class Raw {
     def static export(project) {
 
-        def user_configuration = project.user_configuration
+        def user_configuration = project.configuration.user_configuration
         def export_dir = project.buildDir
         def trained_files = project.trained_files
 

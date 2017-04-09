@@ -4,13 +4,13 @@
 <BeginHMM>
   <NumStates> ${NBSTATES}
 <%
-    for (i in 2..project.user_configuration.models.global.nb_emitting_states+1) {
+    for (i in 2..project.configuration.user_configuration.models.global.nb_emitting_states+1) {
 %>   <State> $i
        <SWeights> $NBSTREAM $SWEIGHTS
 <%       
     def state_template = ""
     def stream_index = 1
-    project.user_configuration.models.cmp.streams.each { stream ->
+    project.configuration.user_configuration.models.cmp.streams.each { stream ->
         
         if (stream.is_msd) {
             for (s in 1..stream.winfiles.size()) {

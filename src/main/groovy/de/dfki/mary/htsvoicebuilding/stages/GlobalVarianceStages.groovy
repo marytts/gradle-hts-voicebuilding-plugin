@@ -34,7 +34,7 @@ class GlobalVarianceStages
                 def total_vec_size = 0
                 def stream_msd_info = ""
                 def stream_vec_size = ""
-                project.user_configuration.models.cmp.streams.each { stream ->
+                project.configuration.user_configuration.models.cmp.streams.each { stream ->
                     stream_msd_info += " 0"
                     stream_vec_size += " " + (stream.order + 1)
                     total_vec_size += (stream.order + 1)
@@ -67,13 +67,13 @@ class GlobalVarianceStages
         // TODO: look if we can parallelize
         project.task('generateStateForceAlignment', type: StandardTask)
         {
-            def last_clust = project.user_configuration.settings.training.nb_clustering - 1
+            def last_clust = project.configuration.user_configuration.settings.training.nb_clustering - 1
             dependsOn "trainClusteredModels" + last_clust
             output = project.gv_fal_dir + "/state"
 
 
             def output_files = []
-            (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).eachLine{ cur_file ->
+            (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
                 def basename = (new File(cur_file)).name
                 def label = ""
                 def filename = output.toString() + "/" + basename + ".lab"
@@ -99,10 +99,10 @@ class GlobalVarianceStages
 
             doLast {
 
-                def id_last_state = project.user_configuration.models.global.nb_emitting_states + 1
+                def id_last_state = project.configuration.user_configuration.models.global.nb_emitting_states + 1
                 withPool(project.nb_proc)
                 {
-                    def file_list = (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).readLines() as List
+                    def file_list = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).readLines() as List
                     file_list.eachParallel { cur_file ->
                         def state_file = new File(project.tasks.generateStateForceAlignment.output.toString() + "/${cur_file}.lab")
                         def phone_file = new File(output.toString() + "/${cur_file}.lab")
@@ -132,15 +132,15 @@ class GlobalVarianceStages
         project.task('GVCoefficientsExtraction', dependsOn:'prepareEnvironment')
         {
             def gv_lab_dir
-            if (project.user_configuration.gv.disable_force_alignment) {
-                gv_lab_dir = DataFileFinder.getFilePath(project.user_configuration.gv.label_dir)
+            if (project.configuration.user_configuration.gv.disable_force_alignment) {
+                gv_lab_dir = DataFileFinder.getFilePath(project.configuration.user_configuration.gv.label_dir)
             } else {
                 dependsOn.add("forceAlignment")
                 gv_lab_dir = project.gv_fal_dir + "/phone"
             }
 
 
-            (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).eachLine{ cur_file ->
+            (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
                 def basename = (new File(cur_file)).name
                 outputs.files project.gv_data_dir + "/" + basename + ".cmp"
             }
@@ -148,27 +148,27 @@ class GlobalVarianceStages
             doLast {
                 withPool(project.nb_proc)
                 {
-                    def file_list = (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).readLines() as List
+                    def file_list = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).readLines() as List
                     file_list.eachParallel { cur_file ->
                         def basename = (new File(cur_file)).name
                         println("dealing with $basename.....")
-                        def fs = project.user_configuration.signal.frameshift
+                        def fs = project.configuration.user_configuration.signal.frameshift
                         def label = ""
                         def i = 0
 
                         // Reset environment in case of
                         (new File("$project.buildDir/tmp_" + basename + ".cmp")).delete()
 
-                        project.user_configuration.models.cmp.streams.each { stream ->
+                        project.configuration.user_configuration.models.cmp.streams.each { stream ->
                             (new File("$project.buildDir/tmp_" + basename + "." + stream.kind)).delete()
 
                             // Deal with silences (remove them from the coefficient set)
-                            if ((project.user_configuration.gv.nosil) &&
-                                (project.user_configuration.gv.silences.size() > 0)) {
+                            if ((project.configuration.user_configuration.gv.nosil) &&
+                                (project.configuration.user_configuration.gv.silences.size() > 0)) {
 
                                 (new File("$gv_lab_dir/${basename}.lab")).eachLine{ cur_lab ->
                                     def cur_lab_arr = cur_lab.split()
-                                    def match_sil = project.user_configuration.gv.silences.findResults { it.toString().equals(cur_lab_arr[2])? it.toString() : null}
+                                    def match_sil = project.configuration.user_configuration.gv.silences.findResults { it.toString().equals(cur_lab_arr[2])? it.toString() : null}
                                     if (match_sil.size() == 0) {
                                         project.exec {
                                             def start = Integer.parseInt(cur_lab_arr[0]) / (1.0e4 * fs)
@@ -235,7 +235,7 @@ class GlobalVarianceStages
                 def gv_scp_file = new File(project.gv_scp_dir + "/train.scp")
                 gv_scp_file.write("") // FIXME: ugly way to reinit the file
 
-                (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).eachLine{ cur_file ->
+                (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
                     def basename = (new File(cur_file)).name
                     def label = ""
                     def i = 0
@@ -247,7 +247,7 @@ class GlobalVarianceStages
                     } else {
 
                         // Generate lab
-                        def cur_full_lab_file = new File(DataFileFinder.getFilePath(project.user_configuration.data.full_lab_dir + "/" + basename, "lab"))
+                        def cur_full_lab_file = new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.full_lab_dir + "/" + basename, "lab"))
                         def cur_gv_lab_file = new File(project.gv_lab_dir + "/" + basename + ".lab")
                         cur_gv_lab_file.write("")
 
@@ -266,7 +266,7 @@ class GlobalVarianceStages
 
                 // Generate list
                 def list_file = new File(project.list_dir + "/gv.list")
-                if (project.user_configuration.gv.cdgv) {
+                if (project.configuration.user_configuration.gv.cdgv) {
                     list_file.write(model_set.join("\n"))
                 } else {
                     list_file.write("gv")
@@ -359,7 +359,7 @@ class GlobalVarianceStages
             // logging.captureStandardOutput LogLevel.INFO
             // logging.captureStandardError LogLevel.ERROR
 
-            def question_file = (new File (DataFileFinder.getFilePath(project.user_configuration.data.question_file_gv)))
+            def question_file = (new File (DataFileFinder.getFilePath(project.configuration.user_configuration.data.question_file_gv)))
             inputs.files project.gv_dir + "/fullcontext.mmf", question_file
             outputs.files project.gv_dir + "/clustered.mmf.noembedded.gz"
 
@@ -374,7 +374,7 @@ class GlobalVarianceStages
 
 
                 def s = 1
-                project.user_configuration.models.cmp.streams.each { stream ->
+                project.configuration.user_configuration.models.cmp.streams.each { stream ->
 
                     // FIXME: what to do with this stuff ?
                     //             make_edfile_state_gv( $type, $s );
@@ -494,7 +494,7 @@ class GlobalVarianceStages
                 def clustered_mmf = new File(project.gv_dir + "/clustered.mmf")
                 clustered_mmf.write(head)
                 s = 1
-                project.user_configuration.models.cmp.streams.each { stream ->
+                project.configuration.user_configuration.models.cmp.streams.each { stream ->
                     clustered_mmf.append("~p \"gv_" + stream.name + "_1\"\n")
                     clustered_mmf.append("<STREAM> $s\n")
                     clustered_mmf.append(pdf[s-1])
@@ -504,7 +504,7 @@ class GlobalVarianceStages
                 clustered_mmf.append("~h \"gv\"\n")
                 clustered_mmf.append(mid)
                 s = 1
-                project.user_configuration.models.cmp.streams.each { stream ->
+                project.configuration.user_configuration.models.cmp.streams.each { stream ->
                     clustered_mmf.append("<STREAM> $s\n")
                     clustered_mmf.append("~p \"gv_" + stream.name + "_1\"\n")
                     s += 1
@@ -516,7 +516,7 @@ class GlobalVarianceStages
 
         project.task("trainGV")
         {
-            if (project.user_configuration.gv.cdgv) {
+            if (project.configuration.user_configuration.gv.cdgv) {
                 dependsOn "trainGVClustered"
             } else {
                 dependsOn "averageGV2clustered"

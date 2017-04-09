@@ -30,12 +30,12 @@ class InitialisationStages {
         project.task('generateSCPFile', dependsOn: 'prepareEnvironment')
         {
             def train_scp_fh = new File(project.train_scp)
-            inputs.files project.user_configuration.data.list_files
+            inputs.files project.configuration.user_configuration.data.list_files
             outputs.files train_scp_fh
 
             doLast {
                 train_scp_fh.text = "" // To be sure we do not append...
-                (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).eachLine{ cur_file ->
+                (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
                     def basename = (new File(cur_file)).name
                     train_scp_fh << "$project.buildDir/cmp/" // FIXME: be more clever for directory
                     train_scp_fh << basename << ".cmp"
@@ -49,22 +49,24 @@ class InitialisationStages {
         {
             outputs.files project.mono_mlf_filename, project.mono_list_filename
 
-            // 1. Generate MLF
-            def mlf_file = new File(project.mono_mlf_filename)
-            mlf_file.write("#!MLF!#\n")
-            mlf_file.append('"*/*.lab" -> "' + DataFileFinder.getFilePath(project.user_configuration.data.mono_lab_dir) +'"')
+            doLast {
+                // 1. Generate MLF
+                def mlf_file = new File(project.mono_mlf_filename)
+                mlf_file.write("#!MLF!#\n")
+                mlf_file.append('"*/*.lab" -> "' + DataFileFinder.getFilePath(project.configuration.user_configuration.data.mono_lab_dir) +'"')
 
-            // 2. From known mono_lab_dir and train scp infos
-            def model_set = new HashSet()
-            (new File(DataFileFinder.getFilePath(project.user_configuration.data.list_files))).eachLine{ cur_file ->
-                def basename = (new File(cur_file)).name
-                (new File(DataFileFinder.getFilePath(project.user_configuration.data.mono_lab_dir + "/" + basename + ".lab"))).eachLine { line ->
+                // 2. From known mono_lab_dir and train scp infos
+                def model_set = new HashSet()
+                (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
+                    def basename = (new File(cur_file)).name
+                    (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.mono_lab_dir + "/" + basename + ".lab"))).eachLine { line ->
 
-                    def line_arr = line =~ /^[ \t]*([0-9]+)[ \t]+([0-9]+)[ \t]+(.+)/
-                    model_set.add(line_arr[0][3])
+                        def line_arr = line =~ /^[ \t]*([0-9]+)[ \t]+([0-9]+)[ \t]+(.+)/
+                        model_set.add(line_arr[0][3])
+                    }
                 }
+                (new File(project.mono_list_filename)).write(model_set.join("\n"))
             }
-            (new File(project.mono_list_filename)).write(model_set.join("\n"))
         }
 
         project.task('generatePrototype', dependsOn: 'prepareEnvironment')
@@ -73,13 +75,13 @@ class InitialisationStages {
 
             doLast {
                 // Global informations
-                def total_nb_states = project.user_configuration.models.global.nb_emitting_states + 2
+                def total_nb_states = project.configuration.user_configuration.models.global.nb_emitting_states + 2
                 def nb_stream = 0
                 def total_vec_size = 0
                 def stream_msd_info = ""
                 def stream_vec_size = ""
                 def sweights = ""
-                project.user_configuration.models.cmp.streams.each { stream ->
+                project.configuration.user_configuration.models.cmp.streams.each { stream ->
                     if (stream.is_msd) {
                         for (i in 1..stream.winfiles.size()) {
                             stream_msd_info += " 1"
@@ -129,7 +131,7 @@ class InitialisationStages {
             // train.cfg
             def nbstream = 0
             def vfloorvalues = ""
-            project.user_configuration.models.cmp.streams.each { stream ->
+            project.configuration.user_configuration.models.cmp.streams.each { stream ->
                 if (stream.is_msd) {
                     nbstream += stream.winfiles.size()
                     for (i in 0..(stream.winfiles.size()-1)) {
@@ -142,9 +144,9 @@ class InitialisationStages {
             }
 
             def binding = [
-            VFLOORDUR : project.user_configuration.models.dur.vflr * 100,
-            MAXDEV : project.user_configuration.settings.training.maxdev,
-            MINDUR : project.user_configuration.settings.training.mindur,
+            VFLOORDUR : project.configuration.user_configuration.models.dur.vflr * 100,
+            MAXDEV : project.configuration.user_configuration.settings.training.maxdev,
+            MINDUR : project.configuration.user_configuration.settings.training.mindur,
             NBSTREAM : nbstream,
             VFLOORVALUES: vfloorvalues
             ]
@@ -168,7 +170,7 @@ class InitialisationStages {
             }
 
             // Model tying (cmp)
-            project.user_configuration.models.cmp.streams.each { stream ->
+            project.configuration.user_configuration.models.cmp.streams.each { stream ->
                 binding = [mocc : stream.mocc]
                 project.copy {
                     from project.template_dir
@@ -182,7 +184,7 @@ class InitialisationStages {
             }
 
             // Model tying (dur)
-            binding = [mocc : project.user_configuration.models.dur.mocc]
+            binding = [mocc : project.configuration.user_configuration.models.dur.mocc]
             project.copy {
                 from project.template_dir
                 into project.config_dir
@@ -233,9 +235,9 @@ class InitialisationStages {
                 def engine = new groovy.text.SimpleTemplateEngine()
                 def vfloor_template = (new File("$project.template_dir/vfloordur")).text // FIXME: update template path
                 def content = ""
-                for (i in 1..project.user_configuration.models.global.nb_emitting_states) {
-                    def variance = project.user_configuration.models.dur.vflr
-                    variance *= project.user_configuration.models.dur.initvar
+                for (i in 1..project.configuration.user_configuration.models.global.nb_emitting_states) {
+                    def variance = project.configuration.user_configuration.models.dur.vflr
+                    variance *= project.configuration.user_configuration.models.dur.initvar
 
                     def binding = [
                     STATEID:i,
@@ -248,17 +250,17 @@ class InitialisationStages {
 
                 //   2. average file (TODO: move that into the template and deal properly with the template !)
                 content = ""
-                for (i in 1..project.user_configuration.models.global.nb_emitting_states) {
+                for (i in 1..project.configuration.user_configuration.models.global.nb_emitting_states) {
                     content += "\t\t<STREAM> $i\n"
                     content += "\t\t\t<MEAN> 1\n"
-                    content += "\t\t\t\t" + project.user_configuration.models.dur.initmean + "\n"
+                    content += "\t\t\t\t" + project.configuration.user_configuration.models.dur.initmean + "\n"
                     content += "\t\t\t<VARIANCE> 1\n"
-                    content += "\t\t\t\t" + project.user_configuration.models.dur.initvar + "\n"
+                    content += "\t\t\t\t" + project.configuration.user_configuration.models.dur.initvar + "\n"
 
                 }
 
                 def binding = [
-                NBSTATES:project.user_configuration.models.global.nb_emitting_states,
+                NBSTATES:project.configuration.user_configuration.models.global.nb_emitting_states,
                 STATECONTENT:content,
                 NAME:"average.mmf"
                 ]

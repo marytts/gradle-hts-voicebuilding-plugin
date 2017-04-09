@@ -10,7 +10,7 @@ class MaryTTS {
         /*******************************************************************************************
          ** 1. Copy the files into a flat directory
          *******************************************************************************************/
-        def user_configuration = project.user_configuration
+        def user_configuration = project.configuration.user_configuration
         def export_dir = project.export_dir
         def trained_files = project.trained_files
         
@@ -62,7 +62,7 @@ class MaryTTS {
         /*******************************************************************************************
          ** 2. Generate the JSON config used by the python script
          *******************************************************************************************/
-        (new File("$export_dir/config.json")).text = new JsonBuilder(project.user_configuration).toPrettyString()
+        (new File("$export_dir/config.json")).text = new JsonBuilder(project.configuration.user_configuration).toPrettyString()
         
         /*******************************************************************************************
          ** 3. Generate the voice config file
