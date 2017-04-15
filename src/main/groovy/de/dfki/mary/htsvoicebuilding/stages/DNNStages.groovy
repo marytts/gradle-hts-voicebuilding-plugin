@@ -28,8 +28,13 @@ class DNNStages
     {
         def dnn_output_dir = "$project.buildDir/DNN/"
 
-        project.task("makeFeatures", type:StandardTask, dependsOn: "generateStateForceAlignment")
+        project.task("makeFeatures", type:StandardTask)
         {
+            if (!System.getProperty("skipHMMTraining"))
+            {
+                dependsOn "generateStateForceAlignment"
+            }
+
             def mkf_script_file = "$project.utils_dir/makefeature.pl";
             output = "$dnn_output_dir/ffi"
 
@@ -68,6 +73,13 @@ class DNNStages
             output = "$project.config_dir"
             doLast {
 
+                def qconf = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.settings.dnn.qconf)));
+                def nb_input_features = 0
+                qconf.eachLine { line ->
+                    if (line =~ /^[^#].*$/) { //All empty lines & lines starting by # should be ignored
+                        nb_input_features += 1
+                    }
+                }
                 def vec_size = 0
                 project.configuration.user_configuration.models.ffo.streams.each { stream ->
                     vec_size += (stream.order + 1) * stream.winfiles.size()
@@ -76,7 +88,7 @@ class DNNStages
 
                 // Now adapt the proto template
                 def binding = [
-                num_input_units: 691, // FIXME: fix according to the number of questions
+                num_input_units: nb_input_features,
                 num_hidden_units: dnn_settings.num_hidden_units,
                 num_output_units: vec_size,
 
@@ -141,7 +153,6 @@ class DNNStages
 
         project.task("trainDNN", type:StandardTask)
         {
-            outputs.upToDateWhen { false }
             dependsOn "makeDNNSCP", "generateDNNConfig", "computeVAR"
 
             def train_script_file = "$project.utils_dir/DNNTraining.py";

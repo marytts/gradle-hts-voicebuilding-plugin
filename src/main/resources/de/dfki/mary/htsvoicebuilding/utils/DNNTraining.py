@@ -226,7 +226,7 @@ def train_using_queue(config, model, stddev):
 
                 step += 1
         except tf.errors.OutOfRangeError:
-            saver.save(sess, model, global_step=step - 1)
+            saver.save(sess, model)
         finally:
             coord.request_stop()
 
@@ -307,7 +307,7 @@ def train(config, model, stddev):
                     config['batch_size'])
 
                 if train_data.num_epochs >= config['num_epochs']:
-                    saver.save(sess, model, global_step=step - 1)
+                    saver.save(sess, model)
                     break
 
                 _, value = sess.run([train_op, cost_op], feed_dict=feed_dict)
