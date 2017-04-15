@@ -216,16 +216,27 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
      ** Export stages
      ****************************************************************************************/
     private void addExportingTasks(Project project) {
-        project.task('training', dependsOn: "trainClusteredModels" + (project.configuration.user_configuration.settings.training.nb_clustering - 1))
+        project.task('training')
         {
-            if (project.configuration.user_configuration.gv.use) {
-                dependsOn.add("trainGV")
+            if (!System.getProperty("skipHMMTraining"))
+            {
+                dependsOn "trainClusteredModels" + (project.configuration.user_configuration.settings.training.nb_clustering - 1)
             }
 
-            if ((project.configuration.user_configuration.settings.training.kind) &&
-                (project.configuration.user_configuration.settings.training.kind.equals("dnn")))
+            if (!System.getProperty("skipGVTraining"))
             {
-                dependsOn.add("trainDNN")
+                if (project.configuration.user_configuration.gv.use) {
+                    dependsOn.add("trainGV")
+                }
+            }
+
+            if (!System.getProperty("skipDNNTraining"))
+            {
+                if ((project.configuration.user_configuration.settings.training.kind) &&
+                    (project.configuration.user_configuration.settings.training.kind.equals("dnn")))
+                {
+                    dependsOn.add("trainDNN")
+                }
             }
         }
 

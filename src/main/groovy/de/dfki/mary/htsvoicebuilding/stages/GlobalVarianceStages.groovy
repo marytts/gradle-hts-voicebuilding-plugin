@@ -68,7 +68,11 @@ class GlobalVarianceStages
         project.task('generateStateForceAlignment', type: StandardTask)
         {
             def last_clust = project.configuration.user_configuration.settings.training.nb_clustering - 1
-            dependsOn "trainClusteredModels" + last_clust
+
+            if (!System.getProperty("skipHMMTraining"))
+            {
+                dependsOn "trainClusteredModels" + last_clust
+            }
             output = project.gv_fal_dir + "/state"
 
 
