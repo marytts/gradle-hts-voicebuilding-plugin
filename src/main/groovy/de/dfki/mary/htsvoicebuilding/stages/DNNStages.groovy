@@ -111,7 +111,6 @@ class DNNStages
                 def model_set = new HashSet()
                 (project.tasks.generateImposedSCP.output).eachLine{ cur_file ->
                     (new File(cur_file)).eachLine { line ->
-
                         def line_arr = line =~ /^[ \t]*([0-9]+)[ \t]+([0-9]+)[ \t]+(.+)/
                         model_set.add(line_arr[0][3])
                     }
@@ -219,6 +218,7 @@ class DNNStages
                         def input = new File("${project.buildDir}/gen_align/${cur_file}.dur")
                         def output_lab = new File("${project.buildDir}/alignment/${cur_file}.lab")
 
+                        output_lab.text = "";
                         def total_state = 5 // FIXME:
                         def id_state = 1
                         def t = 0
