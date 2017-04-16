@@ -17,6 +17,7 @@ import static groovyx.gpars.GParsPool.withPool
 import de.dfki.mary.htsvoicebuilding.HTSWrapper
 import de.dfki.mary.htsvoicebuilding.DataFileFinder
 import de.dfki.mary.utils.StandardTask
+import de.dfki.mary.utils.StandardFileTask
 
 import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
@@ -28,11 +29,249 @@ class DNNStages
     {
         def dnn_output_dir = "$project.buildDir/DNN/"
 
+
+        project.task("generateSynthConfigFile", type:StandardFileTask)
+        {
+            dependsOn "prepareEnvironment"
+            inputs.files project.config_dir
+            output = new File("${project.config_dir}/synth.cfg")
+            outputs.files output
+
+            doLast {
+                // train.cfg
+                def nbstream = 0
+                def cmpstream = []
+                def pdfstrkind = []
+                def pdfstrorder = []
+                def pdfstrwin = []
+                project.configuration.user_configuration.models.cmp.streams.each { stream ->
+                    pdfstrkind << stream.kind
+                    pdfstrorder << (stream.order + 1).toString()
+
+                    pdfstrwin << "StrVec"
+                    pdfstrwin << stream.winfiles.size().toString()
+                    stream.winfiles.each {
+                        pdfstrwin << DataFileFinder.getFilePath(it)
+                    }
+
+                    if (stream.is_msd) {
+                        cmpstream << stream.winfiles.size().toString()
+
+                    } else {
+                        cmpstream << "1"
+                    }
+                    nbstream += 1
+                }
+
+
+                def binding = [
+                    NB_STREAMS: nbstream,
+                               MAXEMITER: 20, // FIXME: hardcoded
+                               CMP_STREAM: cmpstream.join(" "),
+                               VEC_SIZE: pdfstrorder.join(" "),
+                               EXT_LIST: pdfstrkind.join(" "),
+                               WIN_LIST: pdfstrwin.join(" ")
+
+                ]
+
+                project.copy {
+                    from project.template_dir
+                    into project.config_dir
+
+                    include "synth.cfg"
+                    rename { file -> output.name }
+                    expand(binding)
+                }
+            }
+        }
+
+        project.task("generateImposedSCP", type:StandardFileTask)
+        {
+            output = new File(project.train_dnn_scp)
+            inputs.files project.configuration.user_configuration.data.list_files
+            outputs.files output
+
+            doLast {
+                output.text = "" // To be sure we do not append...
+                (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
+                    output << (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.full_lab_dir + "/" + cur_file + ".lab")))
+                    output << "\n"
+                }
+            }
+        }
+
+        project.task('generateFullAllList', dependsOn:'generateImposedSCP', type:StandardFileTask)
+        {
+            output = new File("${project.list_dir}/list_all")
+            outputs.files output
+
+            doLast {
+
+                // 2. From known full_lab_dir and train scp infos
+                def model_set = new HashSet()
+                (project.tasks.generateImposedSCP.output).eachLine{ cur_file ->
+                    (new File(cur_file)).eachLine { line ->
+
+                        def line_arr = line =~ /^[ \t]*([0-9]+)[ \t]+([0-9]+)[ \t]+(.+)/
+                        model_set.add(line_arr[0][3])
+                    }
+                }
+                output.text = model_set.join("\n")
+            }
+        }
+
+
+        project.task("generateCMPTreeConversionScript", type: StandardFileTask)
+        {
+            dependsOn "prepareEnvironment", "generateFullAllList"
+            output = new File("${project.hhed_script_dir}/cmp_conv.hed")
+            outputs.files output
+            doLast {
+                output.text = ""
+                output << "TR 2\n"
+
+                project.configuration.user_configuration.models.cmp.streams.each { stream ->
+                    output << "LT \"$project.tree_dir/${stream.kind}.1.inf\"\n"
+                }
+
+                output << "AU \"${project.tasks.generateFullAllList.output}\"\n"
+                output << "CO \"${project.list_dir}/tiedlist_cmp\"\n"
+            }
+        }
+
+        project.task("generateDURTreeConversionScript", type: StandardFileTask)
+        {
+            dependsOn "prepareEnvironment", "generateFullAllList"
+            output = new File("${project.hhed_script_dir}/dur_conv.hed")
+            outputs.files output
+            doLast {
+                output.text = ""
+                output << "TR 2\n"
+
+                output << "LT \"${project.tree_dir}/dur.1.inf\"\n"
+                output << "AU \"${project.tasks.generateFullAllList.output}\"\n"
+                output << "CO \"${project.list_dir}/tiedlist_dur\"\n"
+            }
+        }
+
+        project.task("treeConversion")
+        {
+            dependsOn "generateCMPTreeConversionScript", "generateDURTreeConversionScript"
+            ["cmp", "dur"].each { kind ->
+                outputs.files "${project.global_model_dir}/$kind/clustered_all.mmf.1"
+            }
+
+            doLast
+            {
+                withPool(project.configuration.nb_proc) {
+                    ["cmp", "dur"].eachParallel { kind ->
+
+                        project.configuration.hts_wrapper.HHEdOnMMF(
+                            project.hhed_script_dir + "/${kind}_conv.hed",
+                            project.full_list_filename,
+                            "${project.global_model_dir}/$kind/clustered.mmf.1",
+                            "${project.global_model_dir}/$kind/clustered_all.mmf.1",
+                            [])
+                    }
+                }
+            }
+        }
+
+
+        project.task("paramGeneration", type:StandardTask)
+        {
+            dependsOn "treeConversion"
+            output = "${project.buildDir}/gen_align"
+            outputs.files output
+
+            doLast {
+                // FIXME
+                def scp
+                project.configuration.hts_wrapper.HMGenS(
+                    project.tasks.generateSynthConfigFile.output,
+                    project.tasks.generateImposedSCP.output,
+                    "${project.list_dir}/tiedlist_cmp",
+                    "${project.list_dir}/tiedlist_dur",
+                    "${project.global_model_dir}/cmp/clustered_all.mmf.1",
+                    "${project.global_model_dir}/dur/clustered_all.mmf.1",
+                    0, output
+                )
+            }
+        }
+
+        project.task("convertDurToLab", type:StandardTask)
+        {
+            dependsOn "paramGeneration"
+
+            output = "${project.buildDir}/alignment"
+            outputs.files output
+
+            doLast {
+                def dur_regexp =  "(.*)\\.state\\[[0-9]*\\].*duration=([0-9]*) .*"
+                withPool(project.configuration.nb_proc)
+                {
+                    def file_list = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).readLines() as List
+                    file_list.eachParallel { cur_file ->
+
+                        project.configuration.user_configuration.models.cmp.streams.each { stream ->
+                            new File("${project.buildDir}/gen_align/${cur_file}.${stream.kind}").delete()
+                        }
+                        def input = new File("${project.buildDir}/gen_align/${cur_file}.dur")
+                        def output_lab = new File("${project.buildDir}/alignment/${cur_file}.lab")
+
+                        def total_state = 5 // FIXME:
+                        def id_state = 1
+                        def t = 0
+                        input.eachLine { line ->
+                            line = line.trim()
+
+                            if (id_state <= total_state)
+                            {
+                                // Retrieve infos
+                                def pattern = ~dur_regexp
+                                def matcher = pattern.matcher(line)
+
+                                def label = matcher[0][1]
+                                def nb_frames = Integer.parseInt(matcher[0][2])
+
+                                // Compute start
+                                def start = t * project.configuration.user_configuration.signal.frameshift * 1E+4
+                                def end = (t + nb_frames) * project.configuration.user_configuration.signal.frameshift * 1E+4
+
+                                // Output
+                                def result = String.format("%d %d %s[%d]",
+                                                           start.intValue(), end.intValue(), label, id_state+1)
+                                if (id_state == 1)
+                                {
+                                    result += " " + label
+                                }
+                                output_lab << result + "\n"
+
+                                t += nb_frames
+                                id_state += 1
+                            }
+                            else
+                            {
+                                id_state = 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         project.task("makeFeatures", type:StandardTask)
         {
-            if (!System.getProperty("skipHMMTraining"))
+            def alignment_lab = null
+            if (System.getProperty("skipHMMTraining"))
+            {
+                dependsOn "convertDurToLab"
+                alignment_lab = project.tasks.convertDurToLab.output
+            }
+            else
             {
                 dependsOn "generateStateForceAlignment"
+                alignment_lab = project.tasks.generateStateForceAlignment.output
             }
 
             def mkf_script_file = "$project.utils_dir/makefeature.pl";
@@ -47,7 +286,7 @@ class DNNStages
                 {
                     def file_list = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).readLines() as List
                     file_list.eachParallel { cur_file ->
-                        String command = "perl $mkf_script_file $qconf $val ${project.tasks.generateStateForceAlignment.output}/${cur_file}.lab | x2x +af > $output/${cur_file}.ffi".toString()
+                        String command = "perl $mkf_script_file $qconf $val ${alignment_lab}/${cur_file}.lab | x2x +af > $output/${cur_file}.ffi".toString()
                         HTSWrapper.executeOnShell(command)
                     }
                 }
@@ -143,7 +382,6 @@ class DNNStages
                     if (stream.stats)
                     {
                         def command_stream_var = "bcut +f -s $start -e ${start+dim-1} -l 1 $output/global.var > $output/${stream.kind}.var"
-                        println(command_stream_var)
                         HTSWrapper.executeOnShell(command_stream_var)
                     }
                     start += dim

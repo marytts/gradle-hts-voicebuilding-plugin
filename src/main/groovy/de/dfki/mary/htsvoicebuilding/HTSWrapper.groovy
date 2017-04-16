@@ -33,8 +33,8 @@ class HTSWrapper {
         map_command["hinit"]     = ["HInit"]     + global_options + ["-m", "1", "-u", "tmvw", "-w", training_wf]
         map_command["hrest"]     = ["HRest"]     + global_options + ["-m", "1", "-u", "tmvw", "-w", training_wf]
         map_command["hhed"]      = ["HHEd"]      + global_options + ["-p", "-i"]
-
         map_command["hsmmalign"] = ["HSMMAlign"] + (global_options - ["-B"]) + ["-w", "1.0", "-t"] + beams // For this specific command, no binary flag!
+        map_command["hmgens"] = ["HMGenS"] + (global_options - ["-B"]) + ["-t"] + beams + ["-m"]
 
         // Parallize commands
         if (nb_proc > 1) {
@@ -204,6 +204,25 @@ class HTSWrapper {
             "-N", dur_input_filename,
             "-m", output_dir,
             list_filename, list_filename]
+
+        executeOnShell(cur_command.join(" "))
+    }
+
+
+    public void HMGenS(def config_filename, def scp_filename, def list_cmp, def list_dur,
+                       def cmp_input_filename, def dur_input_filename,
+                       def pg_type, def output_dir)
+    {
+        def cur_command = map_command["hmgens"]
+
+        cur_command +=  [
+            "-C", config_filename,
+            "-S", scp_filename,
+            "-c", pg_type,
+            "-H", cmp_input_filename,
+            "-N", dur_input_filename,
+            "-M", output_dir,
+            list_cmp, list_dur]
 
         executeOnShell(cur_command.join(" "))
     }

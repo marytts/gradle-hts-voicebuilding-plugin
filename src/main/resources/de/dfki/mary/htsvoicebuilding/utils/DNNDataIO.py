@@ -189,7 +189,12 @@ def read_data_from_script(
         num_input_dimensions, num_output_dimensions = num_dimensions
         inputs = numpy.reshape(input_data, [-1, num_input_dimensions])
         outputs = numpy.reshape(output_data, [-1, num_output_dimensions])
-        assert len(inputs) == len(outputs)
+        if len(inputs) != len(outputs):
+            nb_frames = min(len(inputs), len(outputs))
+            inputs = inputs[1:nb_frames, :]
+            outputs = outputs[1:nb_frames, :]
+
+        # assert len(inputs) == len(outputs)
 
         num_examples = len(inputs)
         if shuffle:

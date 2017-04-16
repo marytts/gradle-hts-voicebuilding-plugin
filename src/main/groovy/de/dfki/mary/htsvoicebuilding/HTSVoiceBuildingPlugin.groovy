@@ -35,6 +35,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
 
             // Scp
             train_scp = "$project.buildDir/train.scp"
+            train_dnn_scp = "$project.buildDir/train_dnn.scp"
 
             // List directories
             list_dir = "$project.buildDir/lists"
@@ -177,6 +178,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
                              'nvf.cfg',
                              'proto',
                              'protogv',
+                             'synth.cfg',
                              'train.cfg',
                              'train_dnn.cfg',
                              'voice-straight-hsmm.config',
