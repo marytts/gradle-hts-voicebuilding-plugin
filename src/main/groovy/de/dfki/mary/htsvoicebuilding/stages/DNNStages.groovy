@@ -179,7 +179,7 @@ class DNNStages
 
         project.task("paramGeneration", type:StandardTask)
         {
-            dependsOn "treeConversion"
+            dependsOn "treeConversion", "generateSynthConfigFile"
             output = "${project.buildDir}/gen_align"
             outputs.files output
 
