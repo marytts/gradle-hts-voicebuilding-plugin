@@ -93,8 +93,6 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
                 DataFileFinder.project_path = project.configurationVoiceBuilding.user_configuration.data.project_dir
             }
 
-            println(DataFileFinder.project_path)
-
             // User configuration
             ext.user_configuration = project.configurationVoiceBuilding.hasProperty("user_configuration") ? project.configurationVoiceBuilding.user_configuration : null
             ext.nb_proc = project.configurationVoiceBuilding.hasProperty("nb_proc") ? project.configurationVoiceBuilding.nb_proc : 1
