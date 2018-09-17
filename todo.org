@@ -1,4 +1,4 @@
-* HTS voice building plugin [55%]
+* HTS voice building plugin [60%]
 :PROPERTIES:
 :CATEGORY: tools
 :END:
@@ -30,4 +30,8 @@ CLOSED: [2017-06-01 Thu 15:43]
 ** TODO think about a test protocol
 ** DONE Adding a validator when an HTS command is failing
 CLOSED: [2016-10-25 Tue 09:32]
-** TODO Publishing instead of run
+** CANCELLED Publishing instead of run                           :CANCELLED:
+CLOSED: [2018-09-17 Mon 16:36]
+- State "CANCELLED"  from "TODO"       [2018-09-17 Mon 16:36] \\
+  deal in another way
+** TODO [#A] See for the output files management
