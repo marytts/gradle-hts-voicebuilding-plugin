@@ -20,11 +20,9 @@ task prepareData() {
 ** DONE Model in binary
 CLOSED: [2016-10-08 Sat 14:46]
 ** TODO Cleaning and commenting
-SCHEDULED: <2017-06-28 Wed>
 ** DONE Binary/ASCII options
 CLOSED: [2016-10-08 Sat 14:46]
 ** TODO Adding log level support
-SCHEDULED: <2017-06-12 Mon>
 ** CANCELLED Export as a marytts archive                         :CANCELLED:
 CLOSED: [2017-06-01 Thu 15:43]
 - State "CANCELLED"  from "TODO"       [2017-06-01 Thu 15:43] \\
@@ -33,4 +31,3 @@ CLOSED: [2017-06-01 Thu 15:43]
 ** DONE Adding a validator when an HTS command is failing
 CLOSED: [2016-10-25 Tue 09:32]
 ** TODO Publishing instead of run
-SCHEDULED: <2017-06-13 Tue>
