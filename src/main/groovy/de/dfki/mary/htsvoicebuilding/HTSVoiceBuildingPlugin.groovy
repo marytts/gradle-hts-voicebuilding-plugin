@@ -30,7 +30,6 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
 
         project.sourceCompatibility = JavaVersion.VERSION_1_7
 
-
         project.ext {
 
             // Scp
@@ -83,31 +82,19 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
 
         }
 
-        project.task("configuration") {
+        project.task("configurationVoiceBuilding") {
 
-            dependsOn "configurationVoiceBuilding"
-
-            // Adapt pathes
-            DataFileFinder.project_path = new File(getClass().protectionDomain.codeSource.location.path).parent
-            if (project.configurationVoiceBuilding.user_configuration.data.project_dir) {
-                DataFileFinder.project_path = project.configurationVoiceBuilding.user_configuration.data.project_dir
-            }
-
-            // User configuration
-            ext.user_configuration = project.configurationVoiceBuilding.hasProperty("user_configuration") ? project.configurationVoiceBuilding.user_configuration : null
-            ext.nb_proc = project.configurationVoiceBuilding.hasProperty("nb_proc") ? project.configurationVoiceBuilding.nb_proc : 1
+            dependsOn "configuration"
 
             def debug = false
-            if (project.configurationVoiceBuilding.user_configuration.settings.debug) {
+            if (project.configuration.user_configuration.settings.debug) {
                 debug = true
             }
-            def beams = project.configurationVoiceBuilding.user_configuration.settings.training.beam.split() as List
+            def beams = project.configuration.user_configuration.settings.training.beam.split() as List
             ext.hts_wrapper = new HTSWrapper(beams, "$project.train_config_filename",
-                                         project.configurationVoiceBuilding.user_configuration.settings.training.wf, project.configuration.nb_proc,
-                                         "$project.buildDir/tmp/utils/HERest.pl", debug)
-
-
-
+                                             project.configuration.user_configuration.settings.training.wf,
+                                             project.configuration.nb_proc,
+                                             "$project.buildDir/tmp/utils/HERest.pl", debug)
         }
 
         addPrepareEnvironmentTask(project)
@@ -132,7 +119,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
     {
         project.task('prepareEnvironment')
         {
-            dependsOn "configuration"
+            dependsOn "configurationVoiceBuilding"
 
             // Create model and trees directories
             new File(project.proto_dir).mkdirs()
@@ -289,7 +276,6 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
          ** MaryTTS
          ******************************/
         project.task('prepareMary') {
-
             doLast {
             }
         }

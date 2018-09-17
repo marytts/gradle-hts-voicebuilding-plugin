@@ -86,7 +86,7 @@ class GlobalVarianceStages
                     output_files.add(filename.toString())
                 }
 
-                project.configuration.hts_wrapper.HSMMAlign(project.train_scp,
+                project.configurationVoiceBuilding.hts_wrapper.HSMMAlign(project.train_scp,
                                               project.full_list_filename,
                                               project.full_mlf_filename,
                                               project.cmp_model_dir + "/clustered.mmf." + last_clust,
@@ -285,7 +285,7 @@ class GlobalVarianceStages
             inputs.files project.gv_dir + "/proto", project.mlf_dir + "/gv.mlf", project.list_dir + "/gv.list"
             outputs.files project.gv_dir + "/average.mmf"
             doLast {
-                project.configuration.hts_wrapper.HCompV(project.gv_scp_dir + "/train.scp",
+                project.configurationVoiceBuilding.hts_wrapper.HCompV(project.gv_scp_dir + "/train.scp",
                                            project.gv_dir + "/proto",
                                            project.gv_dir + "/average.mmf",
                                            project.gv_dir)
@@ -335,7 +335,7 @@ class GlobalVarianceStages
             outputs.files project.gv_dir + "/fullcontext.mmf.embedded.gz"
 
             doLast {
-                project.configuration.hts_wrapper.HERestGV(project.gv_scp_dir + "/train.scp",
+                project.configurationVoiceBuilding.hts_wrapper.HERestGV(project.gv_scp_dir + "/train.scp",
                                              project.list_dir + "/gv.list",
                                              project.mlf_dir + "/gv.mlf",
                                              project.gv_dir + "/fullcontext.mmf",
@@ -404,7 +404,7 @@ class GlobalVarianceStages
                         params += ["-m", "-a", stream.gv.mdlf]
                     }
 
-                    project.configuration.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "cxc_gv_" + stream.name + ".hed",
+                    project.configurationVoiceBuilding.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "cxc_gv_" + stream.name + ".hed",
                                                   project.list_dir + "/gv.list",
                                                   project.gv_dir + "/clustered.mmf",
                                                   project.gv_dir + "/clustered.mmf",
@@ -419,7 +419,7 @@ class GlobalVarianceStages
             inputs.files project.gv_dir + "/clustered.mmf"
             outputs.files project.gv_dir + "/clustered.mmf.embbeded.gz"
             doLast {
-                project.configuration.hts_wrapper.HERestGV(project.gv_scp_dir + "/train.scp",
+                project.configurationVoiceBuilding.hts_wrapper.HERestGV(project.gv_scp_dir + "/train.scp",
                                              project.list_dir + "/gv.list",
                                              project.mlf_dir + "/gv.mlf",
                                              project.gv_dir + "/clustered.mmf",

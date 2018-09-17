@@ -32,7 +32,7 @@ class MonophoneStages {
 
             inputs.files project.mono_mlf_filename,  "$project.cmp_model_dir/average.mmf", \
             "$project.cmp_model_dir/init.mmf", "$project.dur_model_dir/average.mmf"
-            outputs.files "$project.cmp_model_dir/HInit/", "$project.cmp_model_dir/HRest/"
+            // outputs.files "$project.cmp_model_dir/HInit/", "$project.cmp_model_dir/HRest/"
 
             // Generate project
             doLast {
@@ -76,16 +76,16 @@ class MonophoneStages {
                              *   - WARNING [-7032]  OWarn: change HMM Set msdflag[0] in HRest
                              */
                             // HInit
-                            project.configuration.hts_wrapper.HInit(phone, project.train_scp,
-                                                      "$project.proto_dir/proto", "$project.cmp_model_dir/init.mmf",
-                                                      project.mono_mlf_filename, "$project.cmp_model_dir/HInit")
+                            project.configurationVoiceBuilding.hts_wrapper.HInit(phone, project.train_scp,
+                                                                                 "$project.proto_dir/proto", "$project.cmp_model_dir/init.mmf",
+                                                                                 project.mono_mlf_filename, "$project.cmp_model_dir/HInit")
 
 
-                            // HInit
-                            project.configuration.hts_wrapper.HRest(phone, project.train_scp,
-                                                      "$project.cmp_model_dir/HInit", "$project.cmp_model_dir/init.mmf",
-                                                      project.mono_mlf_filename,
-                                                      "$project.cmp_model_dir/HRest", "$project.dur_model_dir/HRest")
+                            // HRest
+                            project.configurationVoiceBuilding.hts_wrapper.HRest(phone, project.train_scp,
+                                                                                 "$project.cmp_model_dir/HInit", "$project.cmp_model_dir/init.mmf",
+                                                                                 project.mono_mlf_filename,
+                                                                                 "$project.cmp_model_dir/HRest", "$project.dur_model_dir/HRest")
                         }
                     }
                 }
@@ -124,9 +124,9 @@ class MonophoneStages {
                     rename { file -> "lvf.cmp.hed"}
                     def binding = [
                         STARTSTATE:2,
-                                   ENDSTATE:project.configuration.user_configuration.models.global.nb_emitting_states+1,
-                                   VFLOORFILE:project.cmp_model_dir + "/vFloors",
-                                   NB_STREAMS: project.configuration.user_configuration.models.cmp.streams.size()
+                        ENDSTATE:project.configuration.user_configuration.models.global.nb_emitting_states+1,
+                        VFLOORFILE:project.cmp_model_dir + "/vFloors",
+                        NB_STREAMS: project.configuration.user_configuration.models.cmp.streams.size()
                     ]
 
                     expand(binding)
@@ -139,12 +139,12 @@ class MonophoneStages {
                 (new File(project.hhed_script_dir + "/lvf.dur.hed")).write(content)
 
 
-                project.configuration.hts_wrapper.HHEdOnDir(project.hhed_script_dir + "/lvf.cmp.hed", project.mono_list_filename,
-                                              project.cmp_model_dir + "/HRest", project.cmp_model_dir + "/monophone.mmf")
+                project.configurationVoiceBuilding.hts_wrapper.HHEdOnDir(project.hhed_script_dir + "/lvf.cmp.hed", project.mono_list_filename,
+                                                                         project.cmp_model_dir + "/HRest", project.cmp_model_dir + "/monophone.mmf")
 
 
-                project.configuration.hts_wrapper.HHEdOnDir(project.hhed_script_dir + "/lvf.dur.hed", project.mono_list_filename,
-                                              project.dur_model_dir + "/HRest", project.dur_model_dir + "/monophone.mmf")
+                project.configurationVoiceBuilding.hts_wrapper.HHEdOnDir(project.hhed_script_dir + "/lvf.dur.hed", project.mono_list_filename,
+                                                                         project.dur_model_dir + "/HRest", project.dur_model_dir + "/monophone.mmf")
 
 
                 (new File("$project.buildDir/achievedstages/generateMonophoneMMF")).text = "ok"
@@ -166,14 +166,14 @@ class MonophoneStages {
 
                             k = (i / project.configuration.user_configuration.settings.daem.nIte) ** project.configuration.user_configuration.settings.daem.alpha
 
-                            project.configuration.hts_wrapper.HERest(project.train_scp,
-                                                       project.mono_list_filename,
-                                                       project.mono_mlf_filename,
-                                                       project.cmp_model_dir + "/monophone.mmf",
-                                                       project.dur_model_dir + "/monophone.mmf",
-                                                       project.cmp_model_dir,
-                                                       project.dur_model_dir
-                                                       ["-k", k])
+                            project.configurationVoiceBuilding.hts_wrapper.HERest(project.train_scp,
+                                                                                  project.mono_list_filename,
+                                                                                  project.mono_mlf_filename,
+                                                                                  project.cmp_model_dir + "/monophone.mmf",
+                                                                                  project.dur_model_dir + "/monophone.mmf",
+                                                                                  project.cmp_model_dir,
+                                                                                  project.dur_model_dir
+                                                                                  ["-k", k])
                         }
                     }
                 } else {
@@ -181,14 +181,14 @@ class MonophoneStages {
                         //
                         println("\n\nIteration $i of Embedded Re-estimation")
 
-                        project.configuration.hts_wrapper.HERest(project.train_scp,
-                                                   project.mono_list_filename,
-                                                   project.mono_mlf_filename,
-                                                   project.cmp_model_dir + "/monophone.mmf",
-                                                   project.dur_model_dir + "/monophone.mmf",
-                                                   project.cmp_model_dir,
-                                                   project.dur_model_dir,
-                                                   [])
+                        project.configurationVoiceBuilding.hts_wrapper.HERest(project.train_scp,
+                                                                              project.mono_list_filename,
+                                                                              project.mono_mlf_filename,
+                                                                              project.cmp_model_dir + "/monophone.mmf",
+                                                                              project.dur_model_dir + "/monophone.mmf",
+                                                                              project.cmp_model_dir,
+                                                                              project.dur_model_dir,
+                                                                              [])
                     }
                 }
 

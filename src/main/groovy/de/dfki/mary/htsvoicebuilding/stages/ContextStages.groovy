@@ -11,12 +11,9 @@ import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.bundling.Zip
 
+
 import static groovyx.gpars.GParsPool.runForkJoin
 import static groovyx.gpars.GParsPool.withPool
-
-import groovy.json.JsonBuilder
-import groovy.json.JsonSlurper
-import groovy.xml.*
 
 class ContextStages
 {
@@ -66,11 +63,11 @@ class ContextStages
 
                 (new File(project.hhed_script_dir + "/m2f.cmp.hed")).write(content)
 
-                project.configuration.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/m2f.cmp.hed",
-                                                            project.mono_list_filename,
-                                                            project.cmp_model_dir + "/monophone.mmf",
-                                                            project.cmp_model_dir + "/fullcontext.mmf.0",
-                                                            [])
+                project.configurationVoiceBuilding.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/m2f.cmp.hed",
+                                                                         project.mono_list_filename,
+                                                                         project.cmp_model_dir + "/monophone.mmf",
+                                                                         project.cmp_model_dir + "/fullcontext.mmf.0",
+                                                                         [])
 
 
                 // Duration
@@ -84,11 +81,11 @@ class ContextStages
                 }
                 (new File(project.hhed_script_dir + "/m2f.dur.hed")).write(content)
 
-                project.configuration.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/m2f.dur.hed",
-                                                            project.mono_list_filename,
-                                                            project.dur_model_dir + "/monophone.mmf",
-                                                            project.dur_model_dir + "/fullcontext.mmf.0",
-                                                            [])
+                project.configurationVoiceBuilding.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/m2f.dur.hed",
+                                                                         project.mono_list_filename,
+                                                                         project.dur_model_dir + "/monophone.mmf",
+                                                                         project.dur_model_dir + "/fullcontext.mmf.0",
+                                                                         [])
 
                 (new File("$project.buildDir/achievedstages/generateFullcontextFromMonophone")).text = "ok"
             }
@@ -102,14 +99,14 @@ class ContextStages
             doLast {
                 for (i in 1..project.configuration.user_configuration.settings.training.nIte)
                     {
-                    project.configuration.hts_wrapper.HERest(project.train_scp,
-                                                             project.full_list_filename, project.full_mlf_filename,
-                                                             project.cmp_model_dir + "/fullcontext.mmf.0",
-                                                             project.dur_model_dir + "/fullcontext.mmf.0",
-                                                             project.cmp_model_dir,
-                                                             project.dur_model_dir,
-                                                             ["-C", project.non_variance_config_filename,
-                                                              "-s", project.cmp_model_dir + "/stats.0", "-w", 0.0])
+                    project.configurationVoiceBuilding.hts_wrapper.HERest(project.train_scp,
+                                                                          project.full_list_filename, project.full_mlf_filename,
+                                                                          project.cmp_model_dir + "/fullcontext.mmf.0",
+                                                                          project.dur_model_dir + "/fullcontext.mmf.0",
+                                                                          project.cmp_model_dir,
+                                                                          project.dur_model_dir,
+                                                                          ["-C", project.non_variance_config_filename,
+                                                                           "-s", project.cmp_model_dir + "/stats.0", "-w", 0.0])
                 }
 
                 (new File("$project.buildDir/achievedstages/trainFullContext0")).text = "ok"
@@ -189,11 +186,11 @@ class ContextStages
                                 params += ["-m", "-a", stream.mdlf]
                             }
 
-                            project.configuration.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "cxc_" + stream.name + "." + local_cur_clus_it + ".hed",
-                                                                        project.full_list_filename,
-                                                                        project.cmp_model_dir + "/fullcontext.mmf." + local_cur_clus_it,
-                                                                        "$project.cmp_model_dir/clustered.mmf.${stream.name}.$local_cur_clus_it",
-                                                                        params)
+                            project.configurationVoiceBuilding.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "cxc_" + stream.name + "." + local_cur_clus_it + ".hed",
+                                                                                     project.full_list_filename,
+                                                                                     project.cmp_model_dir + "/fullcontext.mmf." + local_cur_clus_it,
+                                                                                     "$project.cmp_model_dir/clustered.mmf.${stream.name}.$local_cur_clus_it",
+                                                                                     params)
                         }
                     }
 
@@ -232,11 +229,11 @@ class ContextStages
                             join_script.append("\n")
                         }
 
-                        project.configuration.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/join.hed." + local_cur_clus_it,
-                                                                    project.full_list_filename,
-                                                                    project.cmp_model_dir + "/clustered.mmf." + local_cur_clus_it,
-                                                                    project.cmp_model_dir + "/clustered.mmf." + local_cur_clus_it,
-                                                                    [])
+                        project.configurationVoiceBuilding.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/join.hed." + local_cur_clus_it,
+                                                                                 project.full_list_filename,
+                                                                                 project.cmp_model_dir + "/clustered.mmf." + local_cur_clus_it,
+                                                                                 project.cmp_model_dir + "/clustered.mmf." + local_cur_clus_it,
+                                                                                 [])
                     }
 
                     (new File("$project.buildDir/achievedstages/clusteringCMP" + local_cur_clus_it)).text = "ok"
@@ -298,11 +295,11 @@ class ContextStages
                         params += ["-m", "-a", project.configuration.user_configuration.models.dur.mdlf]
                     }
 
-                    project.configuration.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "cxc_dur.hed." + local_cur_clus_it,
-                                                                project.full_list_filename,
-                                                                project.dur_model_dir + "/clustered.mmf." + local_cur_clus_it,
-                                                                project.dur_model_dir + "/clustered.mmf." + local_cur_clus_it,
-                                                                params)
+                    project.configurationVoiceBuilding.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "cxc_dur.hed." + local_cur_clus_it,
+                                                                             project.full_list_filename,
+                                                                             project.dur_model_dir + "/clustered.mmf." + local_cur_clus_it,
+                                                                             project.dur_model_dir + "/clustered.mmf." + local_cur_clus_it,
+                                                                             params)
 
                     (new File("$project.buildDir/achievedstages/clusteringDUR" + local_cur_clus_it)).text = "ok"
                 }
@@ -317,14 +314,14 @@ class ContextStages
 
                     for (i in 1..project.configuration.user_configuration.settings.training.nIte) {
 
-                        project.configuration.hts_wrapper.HERest(project.train_scp,
-                                                                 project.full_list_filename,
-                                                                 project.full_mlf_filename,
-                                                                 project.cmp_model_dir + "/clustered.mmf." + local_cur_clus_it,
-                                                                 project.dur_model_dir + "/clustered.mmf." + local_cur_clus_it,
-                                                                 project.cmp_model_dir,
-                                                                 project.dur_model_dir,
-                                                                 [])
+                        project.configurationVoiceBuilding.hts_wrapper.HERest(project.train_scp,
+                                                                              project.full_list_filename,
+                                                                              project.full_mlf_filename,
+                                                                              project.cmp_model_dir + "/clustered.mmf." + local_cur_clus_it,
+                                                                              project.dur_model_dir + "/clustered.mmf." + local_cur_clus_it,
+                                                                              project.cmp_model_dir,
+                                                                              project.dur_model_dir,
+                                                                              [])
                     }
 
 
@@ -370,11 +367,11 @@ class ContextStages
 
                     //  2. untying
                     doLast {
-                        project.configuration.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/untying_cmp.hhed",
-                                                                    project.full_list_filename,
-                                                                    project.cmp_model_dir + "/clustered.mmf." + local_cur_clus_it,
-                                                                    project.cmp_model_dir + "/fullcontext.mmf"  + "." + (local_cur_clus_it+1),
-                                                                    [])
+                        project.configurationVoiceBuilding.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/untying_cmp.hhed",
+                                                                                 project.full_list_filename,
+                                                                                 project.cmp_model_dir + "/clustered.mmf." + local_cur_clus_it,
+                                                                                 project.cmp_model_dir + "/fullcontext.mmf"  + "." + (local_cur_clus_it+1),
+                                                                                 [])
 
 
                         (new File("$project.buildDir/achievedstages/untyingCMP" + cur_clus_it)).text = "ok"
@@ -395,11 +392,11 @@ class ContextStages
 
                     //  2. untying
                     doLast {
-                        project.configuration.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/untying_dur.hhed",
-                                                                    project.full_list_filename,
-                                                                    project.dur_model_dir + "/clustered.mmf." + local_cur_clus_it,
-                                                                    project.dur_model_dir + "/fullcontext.mmf"  + "." + (local_cur_clus_it+1),
-                                                                    [])
+                        project.configurationVoiceBuilding.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "/untying_dur.hhed",
+                                                                                 project.full_list_filename,
+                                                                                 project.dur_model_dir + "/clustered.mmf." + local_cur_clus_it,
+                                                                                 project.dur_model_dir + "/fullcontext.mmf"  + "." + (local_cur_clus_it+1),
+                                                                                 [])
 
                         (new File("$project.buildDir/achievedstages/untyingDUR" + cur_clus_it)).text = "ok"
                     }
@@ -415,15 +412,15 @@ class ContextStages
 
                         for (i in 1..project.configuration.user_configuration.settings.training.nIte) {
 
-                            project.configuration.hts_wrapper.HERest(project.train_scp,
-                                                                     project.full_list_filename,
-                                                                     project.full_mlf_filename,
-                                                                     project.cmp_model_dir + "/fullcontext.mmf." + (local_cur_clus_it+1),
-                                                                     project.dur_model_dir + "/fullcontext.mmf." + (local_cur_clus_it+1),
-                                                                     project.cmp_model_dir, project.dur_model_dir,
-                                                                     ["-C", project.non_variance_config_filename,
-                                                                      "-s", project.cmp_model_dir + "/stats." + (local_cur_clus_it+1),
-                                                                      "-w", 0.0])
+                            project.configurationVoiceBuilding.hts_wrapper.HERest(project.train_scp,
+                                                                                  project.full_list_filename,
+                                                                                  project.full_mlf_filename,
+                                                                                  project.cmp_model_dir + "/fullcontext.mmf." + (local_cur_clus_it+1),
+                                                                                  project.dur_model_dir + "/fullcontext.mmf." + (local_cur_clus_it+1),
+                                                                                  project.cmp_model_dir, project.dur_model_dir,
+                                                                                  ["-C", project.non_variance_config_filename,
+                                                                                   "-s", project.cmp_model_dir + "/stats." + (local_cur_clus_it+1),
+                                                                                   "-w", 0.0])
 
                             (new File("$project.buildDir/achievedstages/trainFullContext" + (local_cur_clus_it+1))).text = "ok"
                         }

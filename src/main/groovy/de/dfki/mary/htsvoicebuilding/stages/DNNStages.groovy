@@ -164,7 +164,7 @@ class DNNStages
                 withPool(project.configuration.nb_proc) {
                     ["cmp", "dur"].eachParallel { kind ->
 
-                        project.configuration.hts_wrapper.HHEdOnMMF(
+                        project.configurationVoiceBuilding.hts_wrapper.HHEdOnMMF(
                             project.hhed_script_dir + "/${kind}_conv.hed",
                             project.full_list_filename,
                             "${project.global_model_dir}/$kind/clustered.mmf.1",
@@ -185,7 +185,7 @@ class DNNStages
             doLast {
                 // FIXME
                 def scp
-                project.configuration.hts_wrapper.HMGenS(
+                project.configurationVoiceBuilding.hts_wrapper.HMGenS(
                     project.tasks.generateSynthConfigFile.output,
                     project.tasks.generateImposedSCP.output,
                     "${project.list_dir}/tiedlist_cmp",

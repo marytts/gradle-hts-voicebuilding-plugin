@@ -99,13 +99,13 @@ class InitialisationStages {
 
                 // Now adapt the proto template
                 def binding = [
-                project:project,
-                SWEIGHTS:sweights,
-                GLOBALVECSIZE:total_vec_size,
-                NBSTREAM:nb_stream,
-                STREAMMSDINFO:stream_msd_info,
-                STREAMVECSIZE: stream_vec_size,
-                NBSTATES:total_nb_states,
+                    project:project,
+                    SWEIGHTS:sweights,
+                    GLOBALVECSIZE:total_vec_size,
+                    NBSTREAM:nb_stream,
+                    STREAMMSDINFO:stream_msd_info,
+                    STREAMVECSIZE: stream_vec_size,
+                    NBSTATES:total_nb_states,
                 ]
 
                 // Copy
@@ -142,11 +142,11 @@ class InitialisationStages {
             }
 
             def binding = [
-            VFLOORDUR : project.configuration.user_configuration.models.dur.vflr * 100,
-            MAXDEV : project.configuration.user_configuration.settings.training.maxdev,
-            MINDUR : project.configuration.user_configuration.settings.training.mindur,
-            NBSTREAM : nbstream,
-            VFLOORVALUES: vfloorvalues
+                VFLOORDUR : project.configuration.user_configuration.models.dur.vflr * 100,
+                MAXDEV : project.configuration.user_configuration.settings.training.maxdev,
+                MINDUR : project.configuration.user_configuration.settings.training.mindur,
+                NBSTREAM : nbstream,
+                VFLOORVALUES: vfloorvalues
             ]
 
             project.copy {
@@ -213,10 +213,10 @@ class InitialisationStages {
             doLast {
                 // CMP parts
                 //   1. Get average model
-                project.configuration.hts_wrapper.HCompV(project.train_scp,
-                                           "$project.proto_dir/proto",
-                                           "average.mmf",
-                                           project.cmp_model_dir)
+                project.configurationVoiceBuilding.hts_wrapper.HCompV(project.train_scp,
+                                                                      "$project.proto_dir/proto",
+                                                                      "average.mmf",
+                                                                      project.cmp_model_dir)
 
                 //   2. Get Init model
                 def cur_file = new File("$project.proto_dir/proto")
@@ -238,8 +238,8 @@ class InitialisationStages {
                     variance *= project.configuration.user_configuration.models.dur.initvar
 
                     def binding = [
-                    STATEID:i,
-                    VARIANCE:variance
+                        STATEID:i,
+                        VARIANCE:variance
                     ]
                     content += engine.createTemplate(vfloor_template).make(binding)
                 }
@@ -258,9 +258,9 @@ class InitialisationStages {
                 }
 
                 def binding = [
-                NBSTATES:project.configuration.user_configuration.models.global.nb_emitting_states,
-                STATECONTENT:content,
-                NAME:"average.mmf"
+                    NBSTATES:project.configuration.user_configuration.models.global.nb_emitting_states,
+                    STATECONTENT:content,
+                    NAME:"average.mmf"
                 ]
                 def average_template = (new File("$project.template_dir/average_dur.mmf")).text
                 def average_dur_file = new File(dur_average)
