@@ -3,7 +3,6 @@ package de.dfki.mary.htsvoicebuilding.export
 import groovy.json.* // To load the JSON configuration file
 import java.nio.file.Files
 import java.nio.file.Paths
-import groovy.json.* // To load the JSON configuration file
 import org.apache.commons.io.FileUtils;
 
 class Raw {
@@ -77,7 +76,7 @@ class Raw {
             FileUtils.copyDirectory(new File("$project.buildDir/DNN/var"),
                                     new File("$export_dir/raw/DNN/var"));
 
-            Files.copy(Paths.get(DataFileFinder.getFilePath(user_configuration.settings.dnn.qconf)),
+            Files.copy(Paths.get(user_configuration.settings.dnn.qconf),
                        Paths.get("$export_dir/raw/DNN/qconf.conf"));
         }
 

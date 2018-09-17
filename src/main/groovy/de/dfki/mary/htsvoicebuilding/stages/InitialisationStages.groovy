@@ -14,8 +14,6 @@ import org.gradle.api.tasks.bundling.Zip
 import static groovyx.gpars.GParsPool.runForkJoin
 import static groovyx.gpars.GParsPool.withPool
 
-import de.dfki.mary.htsvoicebuilding.DataFileFinder
-
 import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
 import groovy.xml.*
@@ -35,7 +33,7 @@ class InitialisationStages {
 
             doLast {
                 train_scp_fh.text = "" // To be sure we do not append...
-                (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
+                (new File(project.configuration.user_configuration.data.list_files)).eachLine{ cur_file ->
                     def basename = (new File(cur_file)).name
                     train_scp_fh << "$project.buildDir/cmp/" // FIXME: be more clever for directory
                     train_scp_fh << basename << ".cmp"
@@ -53,13 +51,13 @@ class InitialisationStages {
                 // 1. Generate MLF
                 def mlf_file = new File(project.mono_mlf_filename)
                 mlf_file.write("#!MLF!#\n")
-                mlf_file.append('"*/*.lab" -> "' + DataFileFinder.getFilePath(project.configuration.user_configuration.data.mono_lab_dir) +'"')
+                mlf_file.append('"*/*.lab" -> "' + project.configuration.user_configuration.data.mono_lab_dir +'"')
 
                 // 2. From known mono_lab_dir and train scp infos
                 def model_set = new HashSet()
-                (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
+                (new File(project.configuration.user_configuration.data.list_files)).eachLine{ cur_file ->
                     def basename = (new File(cur_file)).name
-                    (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.mono_lab_dir + "/" + basename + ".lab"))).eachLine { line ->
+                    (new File(project.configuration.user_configuration.data.mono_lab_dir + "/" + basename + ".lab")).eachLine { line ->
 
                         def line_arr = line =~ /^[ \t]*([0-9]+)[ \t]+([0-9]+)[ \t]+(.+)/
                         model_set.add(line_arr[0][3])

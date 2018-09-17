@@ -15,7 +15,6 @@ import static groovyx.gpars.GParsPool.runForkJoin
 import static groovyx.gpars.GParsPool.withPool
 
 import de.dfki.mary.htsvoicebuilding.HTSWrapper
-import de.dfki.mary.htsvoicebuilding.DataFileFinder
 import de.dfki.mary.utils.StandardTask
 import de.dfki.mary.utils.StandardFileTask
 
@@ -51,7 +50,7 @@ class DNNStages
                     pdfstrwin << "StrVec"
                     pdfstrwin << stream.winfiles.size().toString()
                     stream.winfiles.each {
-                        pdfstrwin << DataFileFinder.getFilePath(it)
+                        pdfstrwin << it
                     }
 
                     if (stream.is_msd) {
@@ -93,8 +92,8 @@ class DNNStages
 
             doLast {
                 output.text = "" // To be sure we do not append...
-                (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
-                    output << (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.full_lab_dir + "/" + cur_file + ".lab")))
+                (new File(project.configuration.user_configuration.data.list_files)).eachLine{ cur_file ->
+                    output << (new File(project.configuration.user_configuration.data.full_lab_dir + "/" + cur_file + ".lab"))
                     output << "\n"
                 }
             }
@@ -209,7 +208,7 @@ class DNNStages
                 def dur_regexp =  "(.*)\\.state\\[[0-9]*\\].*duration=([0-9]*) .*"
                 withPool(project.configuration.nb_proc)
                 {
-                    def file_list = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).readLines() as List
+                    def file_list = (new File(project.configuration.user_configuration.data.list_files)).readLines() as List
                     file_list.eachParallel { cur_file ->
 
                         project.configuration.user_configuration.models.cmp.streams.each { stream ->
@@ -281,10 +280,10 @@ class DNNStages
 
             outputs.files output
             doLast {
-                def qconf = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.settings.dnn.qconf)));
+                def qconf = (new File(project.configuration.user_configuration.settings.dnn.qconf));
                 withPool(project.configuration.nb_proc)
                 {
-                    def file_list = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).readLines() as List
+                    def file_list = (new File(project.configuration.user_configuration.data.list_files)).readLines() as List
                     file_list.eachParallel { cur_file ->
                         String command = "perl $mkf_script_file $qconf $val ${alignment_lab}/${cur_file}.lab | x2x +af > $output/${cur_file}.ffi".toString()
                         HTSWrapper.executeOnShell(command)
@@ -300,7 +299,7 @@ class DNNStages
                 def output_file = new File("$output/train_dnn.scp")
                 output_file.text = ""
                 def ffo_dir = project.buildDir.toString() + "/ffo" // TODO: properly dealing with that
-                (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine { cur_file ->
+                (new File(project.configuration.user_configuration.data.list_files)).eachLine { cur_file ->
                     output_file << "${project.tasks.makeFeatures.output}/${cur_file}.ffi $ffo_dir/${cur_file}.ffo" + System.getProperty("line.separator")
                 }
             }
@@ -312,7 +311,7 @@ class DNNStages
             output = "$project.config_dir"
             doLast {
 
-                def qconf = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.settings.dnn.qconf)));
+                def qconf = (new File(project.configuration.user_configuration.settings.dnn.qconf));
                 def nb_input_features = 0
                 qconf.eachLine { line ->
                     if (line =~ /^[^#].*$/) { //All empty lines & lines starting by # should be ignored

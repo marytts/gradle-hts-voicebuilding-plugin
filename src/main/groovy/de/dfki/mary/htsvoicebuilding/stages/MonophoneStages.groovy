@@ -14,8 +14,6 @@ import org.gradle.api.tasks.bundling.Zip
 import static groovyx.gpars.GParsPool.runForkJoin
 import static groovyx.gpars.GParsPool.withPool
 
-import de.dfki.mary.htsvoicebuilding.DataFileFinder
-
 import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
 import groovy.xml.*
@@ -40,11 +38,11 @@ class MonophoneStages {
             doLast {
                 // FIXME: use the list !
                 def monophone_set = new HashSet()
-                (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
+                (new File(project.configuration.user_configuration.data.list_files)).eachLine{ cur_file ->
                     def basename = (new File(cur_file)).name
 
                     // Analyse file
-                    (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.mono_lab_dir + "/" + basename + ".lab"))).eachLine { cur_lab ->
+                    (new File(project.configuration.user_configuration.data.mono_lab_dir + "/" + basename + ".lab")).eachLine { cur_lab ->
                         def line_arr = cur_lab =~ /^[ \t]*([0-9]+)[ \t]+([0-9]+)[ \t]+(.+)/
                         monophone_set.add(line_arr[0][3])
                     }
@@ -106,11 +104,11 @@ class MonophoneStages {
             doLast {
                 // FIXME: use the list !
                 def monophone_set = new HashSet()
-                (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
+                (new File(project.configuration.user_configuration.data.list_files)).eachLine{ cur_file ->
                     def basename = (new File(cur_file)).name
 
                     // Analyse file
-                    (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.mono_lab_dir + "/" + basename + ".lab"))).eachLine { cur_lab ->
+                    (new File(project.configuration.user_configuration.data.mono_lab_dir + "/" + basename + ".lab")).eachLine { cur_lab ->
                         def line_arr = cur_lab =~ /^[ \t]*([0-9]+)[ \t]+([0-9]+)[ \t]+(.+)/
                         monophone_set.add(line_arr[0][3])
                     }

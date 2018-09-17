@@ -16,7 +16,6 @@ import static groovyx.gpars.GParsPool.withPool
 
 
 import de.dfki.mary.utils.StandardTask
-import de.dfki.mary.htsvoicebuilding.DataFileFinder
 
 import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
@@ -80,7 +79,7 @@ class GlobalVarianceStages
 
             doLast {
                 def output_files = []
-                (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
+                (new File(project.configuration.user_configuration.data.list_files)).eachLine{ cur_file ->
                     def basename = (new File(cur_file)).name
                     def label = ""
                     def filename = output.toString() + "/" + basename + ".lab"
@@ -107,7 +106,7 @@ class GlobalVarianceStages
                 def id_last_state = project.configuration.user_configuration.models.global.nb_emitting_states + 1
                 withPool(project.configuration.nb_proc)
                 {
-                    def file_list = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).readLines() as List
+                    def file_list = (new File(project.configuration.user_configuration.data.list_files)).readLines() as List
                     file_list.eachParallel { cur_file ->
                         def state_file = new File(project.tasks.generateStateForceAlignment.output.toString() + "/${cur_file}.lab")
                         def phone_file = new File(output.toString() + "/${cur_file}.lab")
@@ -138,22 +137,16 @@ class GlobalVarianceStages
         {
             def gv_lab_dir
             if (project.configuration.user_configuration.gv.disable_force_alignment) {
-                gv_lab_dir = DataFileFinder.getFilePath(project.configuration.user_configuration.gv.label_dir)
+                gv_lab_dir = project.configuration.user_configuration.gv.label_dir
             } else {
                 dependsOn.add("forceAlignment")
                 gv_lab_dir = project.gv_fal_dir + "/phone"
             }
 
-
-            // (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
-            //     def basename = (new File(cur_file)).name
-            //     outputs.files project.gv_data_dir + "/" + basename + ".cmp"
-            // }
-
             doLast {
                 withPool(project.configuration.nb_proc)
                 {
-                    def file_list = (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).readLines() as List
+                    def file_list = (new File(project.configuration.user_configuration.data.list_files)).readLines() as List
                     file_list.eachParallel { cur_file ->
                         def basename = (new File(cur_file)).name
                         println("dealing with $basename.....")
@@ -180,7 +173,7 @@ class GlobalVarianceStages
                                             def end = Integer.parseInt(cur_lab_arr[1]) / (1.0e4 * fs)
 
                                             def bash_cmd = ["bcut", "-s", start.intValue(), "-e", end.intValue(), "-n", stream.order, "+f"]
-                                            bash_cmd += [DataFileFinder.getFilePath(stream.coeffDir + "/" + basename, stream.kind)]
+                                            bash_cmd += [stream.coeffDir + "/" + basename, stream.kind]
                                             bash_cmd += [">>","$project.buildDir/tmp_" + basename + "." + stream.kind]
 
                                             commandLine  ("bash", "-c", bash_cmd.join(" "))
@@ -190,7 +183,7 @@ class GlobalVarianceStages
 
                             } else {
                                 project.copy {
-                                    from DataFileFinder.getFilePath(stream.coeffDir)
+                                    from stream.coeffDir
                                     to "$project.buildDir"
 
                                     include basename + "." + stream.kind // FIXME: hyp. kind = extension
@@ -240,7 +233,7 @@ class GlobalVarianceStages
                 def gv_scp_file = new File(project.gv_scp_dir + "/train.scp")
                 gv_scp_file.write("") // FIXME: ugly way to reinit the file
 
-                (new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.list_files))).eachLine{ cur_file ->
+                (new File(project.configuration.user_configuration.data.list_files)).eachLine{ cur_file ->
                     def basename = (new File(cur_file)).name
                     def label = ""
                     def i = 0
@@ -252,7 +245,7 @@ class GlobalVarianceStages
                     } else {
 
                         // Generate lab
-                        def cur_full_lab_file = new File(DataFileFinder.getFilePath(project.configuration.user_configuration.data.full_lab_dir + "/" + basename, "lab"))
+                        def cur_full_lab_file = new File(project.configuration.user_configuration.data.full_lab_dir + "/" + basename, "lab")
                         def cur_gv_lab_file = new File(project.gv_lab_dir + "/" + basename + ".lab")
                         cur_gv_lab_file.write("")
 
@@ -364,7 +357,7 @@ class GlobalVarianceStages
             // logging.captureStandardOutput LogLevel.INFO
             // logging.captureStandardError LogLevel.ERROR
 
-            def question_file = (new File (DataFileFinder.getFilePath(project.configuration.user_configuration.data.question_file_gv)))
+            def question_file = (new File (project.configuration.user_configuration.data.question_file_gv))
             inputs.files project.gv_dir + "/fullcontext.mmf", question_file
             outputs.files project.gv_dir + "/clustered.mmf.noembedded.gz"
 
