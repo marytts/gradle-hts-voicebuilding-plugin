@@ -1,5 +1,6 @@
 package de.dfki.mary.htsvoicebuilding.stages
 
+// Grade imports
 import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -11,12 +12,12 @@ import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.bundling.Zip
 
-import static groovyx.gpars.GParsPool.runForkJoin
-import static groovyx.gpars.GParsPool.withPool
+// Task imports
+import de.dfki.mary.htsvoicebuilding.stages.task.GenerateMLFTask
+import de.dfki.mary.htsvoicebuilding.stages.task.GenerateSCPTask
+import de.dfki.mary.htsvoicebuilding.stages.task.GenerateListTask
+import de.dfki.mary.htsvoicebuilding.stages.task.GeneratePrototypeTask
 
-import groovy.json.JsonBuilder
-import groovy.json.JsonSlurper
-import groovy.xml.*
 
 class InitialisationStages {
 
@@ -25,99 +26,34 @@ class InitialisationStages {
      ****************************************************************************************/
     public static void addTasks(Project project)
     {
-        project.task('generateSCPFile', dependsOn: 'prepareEnvironment')
-        {
-            def train_scp_fh = new File(project.train_scp)
-            inputs.files project.configuration.user_configuration.data.list_files
-            outputs.files train_scp_fh
-
-            doLast {
-                train_scp_fh.text = "" // To be sure we do not append...
-                (new File(project.configuration.user_configuration.data.list_files)).eachLine{ cur_file ->
-                    def basename = (new File(cur_file)).name
-                    train_scp_fh << "$project.buildDir/cmp/" // FIXME: be more clever for directory
-                    train_scp_fh << basename << ".cmp"
-                    train_scp_fh << "\n"
-                }
-            }
-
+        project.task('generateSCPFile', type: GenerateSCPTask) {
+            dependsOn "configurationVoiceBuilding"
+            description "Generate the SCP file which contains the list of files used to train the models"
+            list_basenames = new File(project.configuration.user_configuration.data.list_files)
+            scp_file = new File(project.train_scp)
         }
 
-        project.task('generateMonophoneList', dependsOn: 'generateSCPFile')
-        {
-            outputs.files project.mono_mlf_filename, project.mono_list_filename
-
-            doLast {
-                // 1. Generate MLF
-                def mlf_file = new File(project.mono_mlf_filename)
-                mlf_file.write("#!MLF!#\n")
-                mlf_file.append('"*/*.lab" -> "' + project.configuration.user_configuration.data.mono_lab_dir +'"')
-
-                // 2. From known mono_lab_dir and train scp infos
-                def model_set = new HashSet()
-                (new File(project.configuration.user_configuration.data.list_files)).eachLine{ cur_file ->
-                    def basename = (new File(cur_file)).name
-                    (new File(project.configuration.user_configuration.data.mono_lab_dir + "/" + basename + ".lab")).eachLine { line ->
-
-                        def line_arr = line =~ /^[ \t]*([0-9]+)[ \t]+([0-9]+)[ \t]+(.+)/
-                        model_set.add(line_arr[0][3])
-                    }
-                }
-                (new File(project.mono_list_filename)).write(model_set.join("\n"))
-            }
+        project.task("generateMonoMLF", type: GenerateMLFTask) {
+            dependsOn "configurationVoiceBuilding"
+            description "Generate the Master Label File for Monophone training"
+            mlf_file = new File(project.mono_mlf_filename)
+            lab_dir = new File(project.configuration.user_configuration.data.mono_lab_dir)
         }
 
-        project.task('generatePrototype', dependsOn: 'prepareEnvironment')
-        {
-            outputs.files "$project.proto_dir/proto"
+        project.task('generateMonophoneList', type: GenerateListTask) {
+            description "Generate the list of monophone labels"
+            dependsOn "configurationVoiceBuilding"
 
-            doLast {
-                // Global informations
-                def total_nb_states = project.configuration.user_configuration.models.global.nb_emitting_states + 2
-                def nb_stream = 0
-                def total_vec_size = 0
-                def stream_msd_info = ""
-                def stream_vec_size = ""
-                def sweights = ""
-                project.configuration.user_configuration.models.cmp.streams.each { stream ->
-                    if (stream.is_msd) {
-                        for (i in 1..stream.winfiles.size()) {
-                            stream_msd_info += " 1"
-                            stream_vec_size += " 1"
-                            sweights += " " + stream.weight
-                        }
-                        total_vec_size += (stream.order + 1) * stream.winfiles.size()
-                        nb_stream += stream.winfiles.size()
-                    } else {
-                        stream_msd_info += " 0"
-                        stream_vec_size += " " + (stream.order + 1) * stream.winfiles.size()
-                        sweights += " " + stream.weight
-                        total_vec_size += (stream.order + 1) * stream.winfiles.size()
-                        nb_stream += 1
-                    }
-                }
+            lab_dir = new File(project.configuration.user_configuration.data.mono_lab_dir)
+            list_basenames = new File(project.configuration.user_configuration.data.list_files)
+            list_file = new File(project.mono_list_filename)
+        }
 
-                // Now adapt the proto template
-                def binding = [
-                    project:project,
-                    SWEIGHTS:sweights,
-                    GLOBALVECSIZE:total_vec_size,
-                    NBSTREAM:nb_stream,
-                    STREAMMSDINFO:stream_msd_info,
-                    STREAMVECSIZE: stream_vec_size,
-                    NBSTATES:total_nb_states,
-                ]
-
-                // Copy
-                project.copy {
-                    from project.template_dir
-                    into project.proto_dir
-
-                    include "proto"
-
-                    expand(binding)
-                }
-            }
+        project.task('generatePrototype', type: GeneratePrototypeTask) {
+            description "Generate the HMM prototype file"
+            dependsOn "configurationVoiceBuilding"
+            prototype_template = new File(project.template_dir, "proto")
+            prototype_file = new File(project.proto_dir, "proto")
         }
 
 
@@ -194,7 +130,7 @@ class InitialisationStages {
             }
         }
 
-        project.task('initModels', dependsOn:['generatePrototype', 'generateSCPFile', 'generateMonophoneList', 'generateConfigurationFiles'])
+        project.task('initModels', dependsOn:['generatePrototype', 'generateSCPFile', 'generateMonoMLF', 'generateMonophoneList', 'generateConfigurationFiles'])
         {
             // logging.captureStandardOutput LogLevel.INFO
             // logging.captureStandardError LogLevel.ERROR
