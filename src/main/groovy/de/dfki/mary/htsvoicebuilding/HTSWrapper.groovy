@@ -1,6 +1,8 @@
 package de.dfki.mary.htsvoicebuilding
 
-class HTSWrapper {
+import java.io.Serializable
+
+class HTSWrapper implements Serializable {
 
     def global_options
     def beams
