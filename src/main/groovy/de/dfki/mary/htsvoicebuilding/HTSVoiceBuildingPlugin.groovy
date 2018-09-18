@@ -143,6 +143,13 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
                 new File(project.dur_model_dir + "/Hinit").mkdirs()
             }
 
+            // Monophone part
+            new File(project.cmp_model_dir + "/monophone/init").mkdirs()
+            new File(project.dur_model_dir + "/monophone/init").mkdirs()
+            new File(project.cmp_model_dir + "/monophone/trained").mkdirs()
+            new File(project.dur_model_dir + "/monophone/trained").mkdirs()
+
+            // full context
             // GV
             new File(project.gv_dir).mkdirs()
             new File(project.gv_data_dir).mkdirs()

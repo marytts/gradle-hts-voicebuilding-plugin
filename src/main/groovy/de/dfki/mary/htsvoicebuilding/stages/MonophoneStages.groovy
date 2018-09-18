@@ -17,6 +17,7 @@ import static groovyx.gpars.GParsPool.withPool
 
 // Task imports
 import de.dfki.mary.htsvoicebuilding.stages.task.InitPhoneModelsTask
+import de.dfki.mary.htsvoicebuilding.stages.task.GenerateMonophoneModelTask
 
 class MonophoneStages {
 
@@ -56,55 +57,27 @@ class MonophoneStages {
             dur_hrest_dir = new File("$project.dur_model_dir/HRest/")
         }
 
-        project.task('generateMonophoneMMF', dependsOn: 'initialiseMonophoneModels')
+        project.task('generateMonophoneMMF', type:GenerateMonophoneModelTask)
         {
-            doLast {
-                // FIXME: use the list !
-                def monophone_set = new HashSet()
-                (new File(project.configuration.user_configuration.data.list_files)).eachLine{ cur_file ->
-                    def basename = (new File(cur_file)).name
+            // Scripts part
+            script_template_cmp_file = new File(project.template_dir, 'lvf.hed')
+            script_cmp_file = new File(project.hhed_script_dir, "lvf.cmp.hed")
+            script_dur_file = new File(project.hhed_script_dir, "lvf.dur.hed")
 
-                    // Analyse file
-                    (new File(project.configuration.user_configuration.data.mono_lab_dir + "/" + basename + ".lab")).eachLine { cur_lab ->
-                        def line_arr = cur_lab =~ /^[ \t]*([0-9]+)[ \t]+([0-9]+)[ \t]+(.+)/
-                        monophone_set.add(line_arr[0][3])
-                    }
-                }
+            // Used vfloor
+            vfloor_cmp_file = project.initModels.vfloor_cmp_file
+            vfloor_dur_file = project.initModels.vfloor_dur_file
 
+            // Input hrest results
+            cmp_hrest_dir = project.initialiseMonophoneModels.cmp_hrest_dir
+            dur_hrest_dir = project.initialiseMonophoneModels.dur_hrest_dir
 
-                // Generate HHEd script
-                project.copy {
-                    from project.template_dir
-                    into project.hhed_script_dir
+            // Model filename
+            cmp_mmf_file = new File(project.cmp_model_dir + "/monophone/init/monophone.mmf")
+            dur_mmf_file = new File(project.dur_model_dir + "/monophone/init/monophone.mmf")
 
-                    include 'lvf.hed'
-                    rename { file -> "lvf.cmp.hed"}
-                    def binding = [
-                        STARTSTATE:2,
-                        ENDSTATE:project.configuration.user_configuration.models.global.nb_emitting_states+1,
-                        VFLOORFILE:project.cmp_model_dir + "/vFloors",
-                        NB_STREAMS: project.configuration.user_configuration.models.cmp.streams.size()
-                    ]
-
-                    expand(binding)
-                }
-
-
-                // Generate HHEd script
-                def content = "// Load variance flooring macro\n"
-                content += "FV \"" + project.dur_model_dir + "/vFloors\""
-                (new File(project.hhed_script_dir + "/lvf.dur.hed")).write(content)
-
-
-                project.configurationVoiceBuilding.hts_wrapper.HHEdOnDir(project.hhed_script_dir + "/lvf.cmp.hed", project.mono_list_filename,
-                                                                         project.cmp_model_dir + "/HRest", project.cmp_model_dir + "/monophone.mmf")
-
-
-                project.configurationVoiceBuilding.hts_wrapper.HHEdOnDir(project.hhed_script_dir + "/lvf.dur.hed", project.mono_list_filename,
-                                                                         project.dur_model_dir + "/HRest", project.dur_model_dir + "/monophone.mmf")
-
-
-            }
+            // List file
+            list_file = project.generateMonophoneList.list_file
         }
 
         project.task('trainMonophoneMMF', dependsOn: 'generateMonophoneMMF')
