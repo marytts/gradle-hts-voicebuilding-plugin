@@ -17,6 +17,8 @@ import de.dfki.mary.htsvoicebuilding.stages.task.GenerateMLFTask
 import de.dfki.mary.htsvoicebuilding.stages.task.GenerateSCPTask
 import de.dfki.mary.htsvoicebuilding.stages.task.GenerateListTask
 import de.dfki.mary.htsvoicebuilding.stages.task.GeneratePrototypeTask
+import de.dfki.mary.htsvoicebuilding.stages.task.GenerateTrainingConfigurationTask
+import de.dfki.mary.htsvoicebuilding.stages.task.InitModelsTask
 
 
 class InitialisationStages {
@@ -56,152 +58,88 @@ class InitialisationStages {
             prototype_file = new File(project.proto_dir, "proto")
         }
 
+        project.task("generateTrainingConfigurationFile", type: GenerateTrainingConfigurationTask) {
+            description "Generate the training configuration file"
+            dependsOn 'prepareEnvironment'
+            configuration_template = new File(project.template_dir, "train.cfg")
+            configuration_file = new File(project.config_dir, "train.cfg")
+        }
 
-        project.task('generateConfigurationFiles', dependsOn: 'prepareEnvironment')
-        {
-            inputs.files project.config_dir
-            outputs.files project.train_config_filename
+        project.task("generateNVCConfigurationFile") {
+            dependsOn 'prepareEnvironment'
 
-            // train.cfg
-            def nbstream = 0
-            def vfloorvalues = ""
-            project.configuration.user_configuration.models.cmp.streams.each { stream ->
-                if (stream.is_msd) {
-                    nbstream += stream.winfiles.size()
-                    for (i in 0..(stream.winfiles.size()-1)) {
-                        vfloorvalues += " " + stream.vflr
-                    }
-                } else {
-                    nbstream += 1
-                    vfloorvalues += " " + stream.vflr
+            doLast {
+                // nvf.cfg
+                project.copy {
+                    from project.template_dir
+                    into project.config_dir
+
+                    include "nvf.cfg"
+                    rename { file -> (new File(project.non_variance_config_filename)).name }
                 }
             }
+        }
 
-            def binding = [
-                VFLOORDUR : project.configuration.user_configuration.models.dur.vflr * 100,
-                MAXDEV : project.configuration.user_configuration.settings.training.maxdev,
-                MINDUR : project.configuration.user_configuration.settings.training.mindur,
-                NBSTREAM : nbstream,
-                VFLOORVALUES: vfloorvalues
-            ]
+        project.task("generateMOCCCMPConfigurationFiles") {
+            dependsOn 'prepareEnvironment'
 
-            project.copy {
-                from project.template_dir
-                into project.config_dir
+            doLast {
+                project.configuration.user_configuration.models.cmp.streams.each { stream ->
+                    def binding = [mocc : stream.mocc]
+                    project.copy {
+                        from project.template_dir
+                        into project.config_dir
 
-                include "train.cfg"
-                rename { file -> (new File(project.train_config_filename)).name }
-                expand(binding)
+                        include "mocc.cfg"
+                        rename { file -> stream.name + ".cfg" }
+
+                        expand(binding)
+                    }
+                }
             }
+        }
 
-            // nvf.cfg
-            project.copy {
-                from project.template_dir
-                into project.config_dir
+        project.task("generateMOCCDURConfigurationFile") {
+            dependsOn 'prepareEnvironment'
 
-                include "nvf.cfg"
-                rename { file -> (new File(project.non_variance_config_filename)).name }
-            }
-
-            // Model tying (cmp)
-            project.configuration.user_configuration.models.cmp.streams.each { stream ->
-                binding = [mocc : stream.mocc]
+            doLast {
+                def binding = [mocc : project.configuration.user_configuration.models.dur.mocc]
                 project.copy {
                     from project.template_dir
                     into project.config_dir
 
                     include "mocc.cfg"
-                    rename { file -> stream.name + ".cfg" }
+                    rename { file -> "dur.cfg" }
 
                     expand(binding)
                 }
             }
-
-            // Model tying (dur)
-            binding = [mocc : project.configuration.user_configuration.models.dur.mocc]
-            project.copy {
-                from project.template_dir
-                into project.config_dir
-
-                include "mocc.cfg"
-                rename { file -> "dur.cfg" }
-
-                expand(binding)
-            }
         }
 
-        project.task('initModels', dependsOn:['generatePrototype', 'generateSCPFile', 'generateMonoMLF', 'generateMonophoneList', 'generateConfigurationFiles'])
+        project.task('initModels', type: InitModelsTask)
         {
+            dependsOn "generatePrototype"
+            dependsOn "generateMOCCCMPConfigurationFiles"
+            dependsOn "generateMOCCDURConfigurationFile"
+            dependsOn "generateMonoMLF"
+            dependsOn "generateMonophoneList"
+
             // logging.captureStandardOutput LogLevel.INFO
             // logging.captureStandardError LogLevel.ERROR
+            scp_file = project.generateSCPFile.scp_file
+            prototype_file = project.generatePrototype.prototype_file
+            vfloor_cmp_file = new File(project.cmp_model_dir + "/vFloors")
+            init_cmp_file = new File(project.cmp_model_dir + "/init.mmf")
+            average_cmp_file = new File(project.cmp_model_dir + "/average.mmf")
 
-            def cmp_vfloors = project.cmp_model_dir + "/vFloors"
-            def cmp_init = project.cmp_model_dir + "/init.mmf"
-            def cmp_average = project.cmp_model_dir + "/average.mmf"
-            def dur_vfloors = project.dur_model_dir + "/vFloors"
-            def dur_init = project.dur_model_dir + "/init.mmf"
-            def dur_average = project.dur_model_dir + "/average.mmf"
-
-            inputs.files "$project.proto_dir/proto"
-            outputs.files cmp_vfloors, cmp_init, cmp_average, dur_vfloors, dur_init, dur_average
-
-
-            doLast {
-                // CMP parts
-                //   1. Get average model
-                project.configurationVoiceBuilding.hts_wrapper.HCompV(project.train_scp,
-                                                                      "$project.proto_dir/proto",
-                                                                      "average.mmf",
-                                                                      project.cmp_model_dir)
-
-                //   2. Get Init model
-                def cur_file = new File("$project.proto_dir/proto")
-                def header = cur_file.readLines()[0]
-
-                cur_file = new File(cmp_vfloors)
-
-                def init_file = new File(cmp_init)
-                init_file.write(header + "\n" + cur_file.text)
+            vfloor_dur_file = new File(project.dur_model_dir + "/vFloors")
+            init_dur_file = new File(project.dur_model_dir + "/init.mmf")
+            average_dur_file = new File(project.dur_model_dir + "/average.mmf")
 
 
-                // DUR part
-                //    1. vfloor file
-                def engine = new groovy.text.SimpleTemplateEngine()
-                def vfloor_template = (new File("$project.template_dir/vfloordur")).text // FIXME: update template path
-                def content = ""
-                for (i in 1..project.configuration.user_configuration.models.global.nb_emitting_states) {
-                    def variance = project.configuration.user_configuration.models.dur.vflr
-                    variance *= project.configuration.user_configuration.models.dur.initvar
+            vfloor_dur_template_file = new File("$project.template_dir/vfloordur")
+            average_dur_template_file = new File("$project.template_dir/average_dur.mmf")
 
-                    def binding = [
-                        STATEID:i,
-                        VARIANCE:variance
-                    ]
-                    content += engine.createTemplate(vfloor_template).make(binding)
-                }
-                def vfloor_dur_file = new File(dur_vfloors)
-                vfloor_dur_file.write(content)
-
-                //   2. average file (TODO: move that into the template and deal properly with the template !)
-                content = ""
-                for (i in 1..project.configuration.user_configuration.models.global.nb_emitting_states) {
-                    content += "\t\t<STREAM> $i\n"
-                    content += "\t\t\t<MEAN> 1\n"
-                    content += "\t\t\t\t" + project.configuration.user_configuration.models.dur.initmean + "\n"
-                    content += "\t\t\t<VARIANCE> 1\n"
-                    content += "\t\t\t\t" + project.configuration.user_configuration.models.dur.initvar + "\n"
-
-                }
-
-                def binding = [
-                    NBSTATES:project.configuration.user_configuration.models.global.nb_emitting_states,
-                    STATECONTENT:content,
-                    NAME:"average.mmf"
-                ]
-                def average_template = (new File("$project.template_dir/average_dur.mmf")).text
-                def average_dur_file = new File(dur_average)
-                average_dur_file.write(engine.createTemplate(average_template).make(binding).toString())
-            }
         }
     }
 }
