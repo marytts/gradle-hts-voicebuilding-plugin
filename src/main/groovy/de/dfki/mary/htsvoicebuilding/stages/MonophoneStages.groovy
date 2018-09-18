@@ -18,6 +18,7 @@ import static groovyx.gpars.GParsPool.withPool
 // Task imports
 import de.dfki.mary.htsvoicebuilding.stages.task.InitPhoneModelsTask
 import de.dfki.mary.htsvoicebuilding.stages.task.GenerateMonophoneModelTask
+import de.dfki.mary.htsvoicebuilding.stages.task.TrainModelsTask
 
 class MonophoneStages {
 
@@ -80,44 +81,19 @@ class MonophoneStages {
             list_file = project.generateMonophoneList.list_file
         }
 
-        project.task('trainMonophoneMMF', dependsOn: 'generateMonophoneMMF')
+        project.task('trainMonophoneMMF', type: TrainModelsTask)
         {
-            doLast {
-                if (project.configuration.user_configuration.settings.daem.use) {
-                    for (i in 1..project.configuration.user_configuration.settings.daem.nIte) {
-                        for (j in 1..project.configuration.user_configuration.settings.training.nIte) {
-                            //
-                            def k = j + (i-1) ** project.configuration.user_configuration.settings.training.nIte
-                            println("\n\nIteration $k of Embedded Re-estimation")
+            use_daem = project.configuration.user_configuration.settings.daem.use
 
-                            k = (i / project.configuration.user_configuration.settings.daem.nIte) ** project.configuration.user_configuration.settings.daem.alpha
+            scp_file = project.generateSCPFile.scp_file
+            list_file = project.generateMonophoneList.list_file
+            mlf_file = project.generateMonoMLF.mlf_file
 
-                            project.configurationVoiceBuilding.hts_wrapper.HERest(project.train_scp,
-                                                                                  project.mono_list_filename,
-                                                                                  project.mono_mlf_filename,
-                                                                                  project.cmp_model_dir + "/monophone.mmf",
-                                                                                  project.dur_model_dir + "/monophone.mmf",
-                                                                                  project.cmp_model_dir,
-                                                                                  project.dur_model_dir
-                                                                                  ["-k", k])
-                        }
-                    }
-                } else {
-                    for (i in 1..project.configuration.user_configuration.settings.training.nIte) {
-                        //
-                        println("\n\nIteration $i of Embedded Re-estimation")
+            init_cmp_file = project.generateMonophoneMMF.cmp_mmf_file
+            init_dur_file = project.generateMonophoneMMF.dur_mmf_file
 
-                        project.configurationVoiceBuilding.hts_wrapper.HERest(project.train_scp,
-                                                                              project.mono_list_filename,
-                                                                              project.mono_mlf_filename,
-                                                                              project.cmp_model_dir + "/monophone.mmf",
-                                                                              project.dur_model_dir + "/monophone.mmf",
-                                                                              project.cmp_model_dir,
-                                                                              project.dur_model_dir,
-                                                                              [])
-                    }
-                }
-            }
+            trained_cmp_file = new File(project.cmp_model_dir + "/monophone/trained/monophone.mmf")
+            trained_dur_file = new File(project.dur_model_dir + "/monophone/trained/monophone.mmf")
         }
     }
 }
