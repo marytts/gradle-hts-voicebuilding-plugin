@@ -44,7 +44,6 @@ class InitialisationStages {
 
         project.task('generateMonophoneList', type: GenerateListTask) {
             description "Generate the list of monophone labels"
-            dependsOn "configurationVoiceBuilding"
 
             lab_dir = new File(project.configuration.user_configuration.data.mono_lab_dir)
             list_basenames = new File(project.configuration.user_configuration.data.list_files)
@@ -53,20 +52,19 @@ class InitialisationStages {
 
         project.task('generatePrototype', type: GeneratePrototypeTask) {
             description "Generate the HMM prototype file"
-            dependsOn "configurationVoiceBuilding"
             prototype_template = new File(project.template_dir, "proto")
             prototype_file = new File(project.proto_dir, "proto")
         }
 
         project.task("generateTrainingConfigurationFile", type: GenerateTrainingConfigurationTask) {
             description "Generate the training configuration file"
-            dependsOn 'prepareEnvironment'
+            dependsOn "configurationVoiceBuilding"
             configuration_template = new File(project.template_dir, "train.cfg")
             configuration_file = new File(project.config_dir, "train.cfg")
         }
 
         project.task("generateNVCConfigurationFile") {
-            dependsOn 'prepareEnvironment'
+            dependsOn "configurationVoiceBuilding"
 
             doLast {
                 // nvf.cfg
@@ -81,7 +79,7 @@ class InitialisationStages {
         }
 
         project.task("generateMOCCCMPConfigurationFiles") {
-            dependsOn 'prepareEnvironment'
+            dependsOn "configurationVoiceBuilding"
 
             doLast {
                 project.configuration.user_configuration.models.cmp.streams.each { stream ->
@@ -100,7 +98,7 @@ class InitialisationStages {
         }
 
         project.task("generateMOCCDURConfigurationFile") {
-            dependsOn 'prepareEnvironment'
+            dependsOn "configurationVoiceBuilding"
 
             doLast {
                 def binding = [mocc : project.configuration.user_configuration.models.dur.mocc]
@@ -118,11 +116,9 @@ class InitialisationStages {
 
         project.task('initModels', type: InitModelsTask)
         {
-            dependsOn "generatePrototype"
-            dependsOn "generateMOCCCMPConfigurationFiles"
-            dependsOn "generateMOCCDURConfigurationFile"
-            dependsOn "generateMonoMLF"
-            dependsOn "generateMonophoneList"
+            // FIXME: refactor
+            dependsOn "generateTrainingConfigurationFile"
+            dependsOn "generateNVCConfigurationFile"
 
             // logging.captureStandardOutput LogLevel.INFO
             // logging.captureStandardError LogLevel.ERROR

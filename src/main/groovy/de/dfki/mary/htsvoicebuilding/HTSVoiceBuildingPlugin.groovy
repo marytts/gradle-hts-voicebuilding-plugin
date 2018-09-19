@@ -54,7 +54,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
 
             // Configuration project
             config_dir = "$project.buildDir/configs"
-            train_config_filename = "$project.config_dir/trn.cfg"
+            train_config_filename = "$project.config_dir/train.cfg"
             non_variance_config_filename = "$project.config_dir/nvf.cfg"
 
             // Output
@@ -95,31 +95,8 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
                                              project.configuration.user_configuration.settings.training.wf,
                                              project.configuration.nb_proc,
                                              "$project.buildDir/tmp/utils/HERest.pl", debug)
-        }
 
-        addPrepareEnvironmentTask(project)
-
-        project.afterEvaluate {
-            // Add the tasks
-            InitialisationStages.addTasks(project)
-            MonophoneStages.addTasks(project)
-            ContextStages.addTasks(project)
-            GlobalVarianceStages.addTasks(project)
-            DNNStages.addTasks(project)
-            addExportingTasks(project)
-            addRunTask(project)
-        }
-    }
-
-
-    /****************************************************************************************
-     ** Export stages
-     ****************************************************************************************/
-    private void addPrepareEnvironmentTask(Project project)
-    {
-        project.task('prepareEnvironment')
-        {
-            dependsOn "configurationVoiceBuilding"
+            // Generate directory
 
             // Create model and trees directories
             new File(project.proto_dir).mkdirs()
@@ -150,6 +127,13 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
             new File(project.dur_model_dir + "/monophone/trained").mkdirs()
 
             // full context
+            for (int i=0; i<project.configuration.user_configuration.settings.training.nb_clustering; i++) {
+                new File(project.cmp_model_dir + "/fullcontext_$i/init").mkdirs()
+                new File(project.dur_model_dir + "/fullcontext_$i/init").mkdirs()
+                new File(project.cmp_model_dir + "/fullcontext_$i/trained").mkdirs()
+                new File(project.dur_model_dir + "/fullcontext_$i/trained").mkdirs()
+            }
+
             // GV
             new File(project.gv_dir).mkdirs()
             new File(project.gv_data_dir).mkdirs()
@@ -175,7 +159,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
                              'train_dnn.cfg',
                              'voice-straight-hsmm.config',
                              'vfloordur',
-                            ].collect {
+            ].collect {
                 project.file "$project.template_dir/$it"
             }
 
@@ -194,7 +178,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
                          'DNNDataIO.py',
                          'DNNDefine.py',
                          'DNNTraining.py'
-                        ].collect {
+            ].collect {
                 project.file "$project.utils_dir/$it"
             }
 
@@ -203,6 +187,18 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
                     stream << getClass().getResourceAsStream("/de/dfki/mary/htsvoicebuilding/utils/$outputFile.name")
                 }
             }
+        }
+
+
+        project.afterEvaluate {
+            // Add the tasks
+            InitialisationStages.addTasks(project)
+            MonophoneStages.addTasks(project)
+            ContextStages.addTasks(project)
+            GlobalVarianceStages.addTasks(project)
+            DNNStages.addTasks(project)
+            addExportingTasks(project)
+            addRunTask(project)
         }
     }
 
@@ -213,19 +209,19 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
         project.task('training')
         {
             if (!System.getProperty("skipHMMTraining"))
-            {
+                {
                 dependsOn "trainClusteredModels" + (project.configuration.user_configuration.settings.training.nb_clustering - 1)
             }
 
             if (!System.getProperty("skipGVTraining"))
-            {
+                {
                 if (project.configuration.user_configuration.gv.use) {
                     dependsOn.add("trainGV")
                 }
             }
 
             if (!System.getProperty("skipDNNTraining"))
-            {
+                {
                 if ((project.configuration.user_configuration.settings.training.kind) &&
                     (project.configuration.user_configuration.settings.training.kind.equals("dnn")))
                 {

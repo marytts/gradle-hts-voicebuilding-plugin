@@ -25,8 +25,8 @@ class GlobalVarianceStages
 {
     public static void addTasks(Project project)
     {
-        project.task('generateGVProto', dependsOn:'prepareEnvironment')
-        {
+        project.task('generateGVProto') {
+            dependsOn "configurationVoiceBuilding"
             outputs.files project.gv_dir + "/proto"
             doLast {
                 def nb_stream = 0
@@ -63,9 +63,7 @@ class GlobalVarianceStages
         }
 
 
-        // TODO: look if we can parallelize
-        project.task('generateStateForceAlignment', type: StandardTask)
-        {
+        project.task('generateStateForceAlignment', type: StandardTask) {
             def last_clust = project.configuration.user_configuration.settings.training.nb_clustering - 1
 
             if (!System.getProperty("skipHMMTraining"))
@@ -97,8 +95,7 @@ class GlobalVarianceStages
         }
 
 
-        project.task('forceAlignment', type: StandardTask, dependsOn:"generateStateForceAlignment")
-        {
+        project.task('forceAlignment', type: StandardTask, dependsOn:"generateStateForceAlignment")  {
             output = project.gv_fal_dir + "/phone"
 
             doLast {
@@ -133,8 +130,8 @@ class GlobalVarianceStages
             }
         }
 
-        project.task('GVCoefficientsExtraction', dependsOn:'prepareEnvironment')
-        {
+        project.task('GVCoefficientsExtraction') {
+            dependsOn "configurationVoiceBuilding"
             def gv_lab_dir
             if (project.configuration.user_configuration.gv.disable_force_alignment) {
                 gv_lab_dir = project.configuration.user_configuration.gv.label_dir
@@ -173,7 +170,7 @@ class GlobalVarianceStages
                                             def end = Integer.parseInt(cur_lab_arr[1]) / (1.0e4 * fs)
 
                                             def bash_cmd = ["bcut", "-s", start.intValue(), "-e", end.intValue(), "-n", stream.order, "+f"]
-                                            bash_cmd += [stream.coeffDir + "/" + basename, stream.kind]
+                                            bash_cmd += [stream.coeffDir + "/" + basename + "." + stream.kind]
                                             bash_cmd += [">>","$project.buildDir/tmp_" + basename + "." + stream.kind]
 
                                             commandLine  ("bash", "-c", bash_cmd.join(" "))
@@ -245,7 +242,7 @@ class GlobalVarianceStages
                     } else {
 
                         // Generate lab
-                        def cur_full_lab_file = new File(project.configuration.user_configuration.data.full_lab_dir + "/" + basename, "lab")
+                        def cur_full_lab_file = new File(project.configuration.user_configuration.data.full_lab_dir + "/" + basename + ".lab")
                         def cur_gv_lab_file = new File(project.gv_lab_dir + "/" + basename + ".lab")
                         cur_gv_lab_file.write("")
 

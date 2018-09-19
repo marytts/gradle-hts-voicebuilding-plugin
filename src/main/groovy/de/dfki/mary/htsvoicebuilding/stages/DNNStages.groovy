@@ -31,7 +31,7 @@ class DNNStages
 
         project.task("generateSynthConfigFile", type:StandardFileTask)
         {
-            dependsOn "prepareEnvironment"
+            dependsOn "configurationVoiceBuilding"
             inputs.files project.config_dir
             output = new File("${project.config_dir}/synth.cfg")
             outputs.files output
@@ -121,7 +121,7 @@ class DNNStages
 
         project.task("generateCMPTreeConversionScript", type: StandardFileTask)
         {
-            dependsOn "prepareEnvironment", "generateFullAllList"
+            dependsOn "configurationVoiceBuilding", "generateFullAllList"
             output = new File("${project.hhed_script_dir}/cmp_conv.hed")
             outputs.files output
             doLast {
@@ -139,7 +139,7 @@ class DNNStages
 
         project.task("generateDURTreeConversionScript", type: StandardFileTask)
         {
-            dependsOn "prepareEnvironment", "generateFullAllList"
+            dependsOn "configurationVoiceBuilding", "generateFullAllList"
             output = new File("${project.hhed_script_dir}/dur_conv.hed")
             outputs.files output
             doLast {
@@ -362,8 +362,9 @@ class DNNStages
             }
         }
 
-        project.task("computeVAR", type:StandardTask, dependsOn: "prepareEnvironment")
+        project.task("computeVAR", type:StandardTask)
         {
+            dependsOn "configurationVoiceBuilding"
             output = new File("$dnn_output_dir/var")
 
             doLast {

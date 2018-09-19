@@ -58,8 +58,8 @@ public class GenerateTrainingConfigurationTask extends DefaultTask {
         ]
 
         project.copy {
-            from configuration_template
-            into configuration_file.getParent()
+            from configuration_template.getAsFile().get().toString()
+            into configuration_file.getAsFile().get().getParent()
 
             expand(binding)
         }
