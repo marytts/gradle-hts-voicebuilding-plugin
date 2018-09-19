@@ -52,39 +52,10 @@ class GlobalVarianceStages
         }
 
 
-        project.task('forceAlignment', type: StandardTask, dependsOn:"generateStateForceAlignment")  {
-            output = project.gv_fal_dir + "/phone"
-
-            doLast {
-
-                def id_last_state = project.configuration.user_configuration.models.global.nb_emitting_states + 1
-                withPool(project.configuration.nb_proc)
-                {
-                    def file_list = (new File(project.configuration.user_configuration.data.list_files)).readLines() as List
-                    file_list.eachParallel { cur_file ->
-                        def state_file = new File(project.tasks.generateStateForceAlignment.output.toString() + "/${cur_file}.lab")
-                        def phone_file = new File(output.toString() + "/${cur_file}.lab")
-
-
-                        def start = 0
-                        state_file.eachLine { line ->
-                            def val = line.split()
-                            def m = val[2] =~ /[^-]*-([^+]*)[+].*\[([0-9]*)\]$/
-                            def label = m[0][1]
-                            def state = Integer.parseInt(m[0][2])
-
-                            if (state == 2)
-                            {
-                                start = val[0]
-                            }
-                            else if (state == id_last_state)
-                            {
-                                phone_file << "$start ${val[1]} $label\n"
-                            }
-                        }
-                    }
-                }
-            }
+        project.task('forceAlignment', type: GeneratePhoneForceAlignmentTask)  {
+            scp_file = project.generateSCPFile.scp_file
+            state_alignment_dir = project.generateStateForceAlignment.alignment_dir
+            phone_alignment_dir = new File(project.gv_fal_dir + "/phone")
         }
 
         project.task('GVCoefficientsExtraction') {
