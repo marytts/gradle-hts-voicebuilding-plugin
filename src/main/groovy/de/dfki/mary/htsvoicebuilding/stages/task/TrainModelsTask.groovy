@@ -20,6 +20,8 @@ import org.gradle.api.tasks.*
  */
 public class TrainModelsTask extends DefaultTask {
 
+    def options = []
+
     Boolean use_daem = false;
 
     /** The SCP file containing the list of training files */
@@ -86,7 +88,7 @@ public class TrainModelsTask extends DefaultTask {
                                                                       init_dur_file.getAsFile().get().toString(),
                                                                       trained_cmp_file.getAsFile().get().getParent(),
                                                                       trained_dur_file.getAsFile().get().getParent(),
-                                                                      [])
+                                                                      options)
             }
         }
     }
