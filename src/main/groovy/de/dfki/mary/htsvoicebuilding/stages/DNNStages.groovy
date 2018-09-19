@@ -270,7 +270,7 @@ class DNNStages
             else
             {
                 dependsOn "generateStateForceAlignment"
-                alignment_lab = project.tasks.generateStateForceAlignment.output
+                alignment_lab = project.tasks.generateStateForceAlignment.alignment_dir
             }
 
             def mkf_script_file = "$project.utils_dir/makefeature.pl";

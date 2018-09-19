@@ -21,77 +21,34 @@ import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
 import groovy.xml.*
 
+import de.dfki.mary.htsvoicebuilding.stages.task.gv.*
+
 class GlobalVarianceStages
 {
     public static void addTasks(Project project)
     {
-        project.task('generateGVProto') {
+        project.task('generateGVProto', type: GenerateGVProtoTask) {
             dependsOn "configurationVoiceBuilding"
-            outputs.files project.gv_dir + "/proto"
-            doLast {
-                def nb_stream = 0
-                def total_vec_size = 0
-                def stream_msd_info = ""
-                def stream_vec_size = ""
-                project.configuration.user_configuration.models.cmp.streams.each { stream ->
-                    stream_msd_info += " 0"
-                    stream_vec_size += " " + (stream.order + 1)
-                    total_vec_size += (stream.order + 1)
-                    nb_stream += 1
-                }
 
-                def binding = [
-                    project:project,
-                    GLOBALVECSIZE:total_vec_size,
-                               NBSTREAM:nb_stream,
-                               STREAMMSDINFO:stream_msd_info,
-                               STREAMVECSIZE: stream_vec_size
-                ]
-
-                // Now adapt the proto template
-                project.copy {
-                    from project.template_dir
-                    into project.gv_dir
-
-                    include 'protogv'
-                    rename {file -> 'proto'}
-
-
-                    expand(binding)
-                }
-            }
+            proto_file = new File(project.gv_dir, "proto")
+            template_file = new File(project.template_dir, 'protogv')
         }
 
 
-        project.task('generateStateForceAlignment', type: StandardTask) {
+        project.task('generateStateForceAlignment', type: GenerateStateForceAlignmentTask) {
             def last_clust = project.configuration.user_configuration.settings.training.nb_clustering - 1
 
-            if (!System.getProperty("skipHMMTraining"))
-            {
-                dependsOn "trainClusteredModels" + last_clust
-            }
-            output = project.gv_fal_dir + "/state"
+            // Global Files
+            scp_file = project.generateSCPFile.scp_file
+            list_file = project.generateFullList.list_file
+            mlf_file = project.generateFullMLF.mlf_file
 
+            // Model files
+            model_cmp_file = project.property("trainClusteredModels${last_clust}").trained_cmp_file
+            model_dur_file = project.property("trainClusteredModels${last_clust}").trained_dur_file
 
-            // outputs.files(output_files)
-
-            doLast {
-                def output_files = []
-                (new File(project.configuration.user_configuration.data.list_files)).eachLine{ cur_file ->
-                    def basename = (new File(cur_file)).name
-                    def label = ""
-                    def filename = output.toString() + "/" + basename + ".lab"
-                    output_files.add(filename.toString())
-                }
-
-                project.configurationVoiceBuilding.hts_wrapper.HSMMAlign(project.train_scp,
-                                              project.full_list_filename,
-                                              project.full_mlf_filename,
-                                              project.cmp_model_dir + "/clustered.mmf." + last_clust,
-                                              project.dur_model_dir + "/clustered.mmf." + last_clust,
-                                              output.toString(),
-                                              true)
-            }
+            // State Alignment
+            alignment_dir = new File(project.gv_fal_dir + "/state")
         }
 
 
