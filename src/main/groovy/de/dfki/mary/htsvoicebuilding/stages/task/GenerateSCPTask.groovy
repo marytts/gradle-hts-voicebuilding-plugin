@@ -23,6 +23,9 @@ public class GenerateSCPTask extends DefaultTask {
     @InputFile
     final RegularFileProperty list_basenames = newInputFile()
 
+    @InputDirectory
+    final DirectoryProperty data_dir = newInputDirectory()
+
     /** The directory containing the spectrum files */
     @OutputFile
     final RegularFileProperty scp_file = newOutputFile()
@@ -36,7 +39,7 @@ public class GenerateSCPTask extends DefaultTask {
     public void generate() {
         def output = ""
         for (String basename: list_basenames.getAsFile().get().readLines()) {
-            output += "$project.buildDir/cmp/${basename}.cmp\n"
+            output += "${data_dir.getAsFile().get().toString()}/${basename}.cmp\n"
         }
 
         scp_file.getAsFile().get().text = output

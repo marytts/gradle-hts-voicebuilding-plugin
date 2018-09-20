@@ -42,7 +42,11 @@ public class GenerateListTask extends DefaultTask {
         for (String basename: list_basenames.getAsFile().get().readLines()) {
             (new File(lab_dir.getAsFile().get().toString(), basename + ".lab")).eachLine { line ->
                 def line_arr = line =~ /^[ \t]*([0-9]+)[ \t]+([0-9]+)[ \t]+(.+)/
-                model_set.add(line_arr[0][3])
+                if (line_arr.size() == 0) {
+                    model_set.add(line)
+                } else {
+                    model_set.add(line_arr[0][3])
+                }
             }
         }
 

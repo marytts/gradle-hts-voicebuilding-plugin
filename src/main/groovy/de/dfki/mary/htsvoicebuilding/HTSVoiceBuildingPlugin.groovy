@@ -135,7 +135,8 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
             }
 
             // GV
-            new File(project.gv_dir).mkdirs()
+            new File(project.gv_dir + "/init").mkdirs()
+            new File(project.gv_dir + "/trained").mkdirs()
             new File(project.gv_data_dir).mkdirs()
             new File(project.gv_fal_dir).mkdirs()
             new File(project.gv_lab_dir).mkdirs()

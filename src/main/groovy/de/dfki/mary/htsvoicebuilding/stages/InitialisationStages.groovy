@@ -32,6 +32,7 @@ class InitialisationStages {
             dependsOn "configurationVoiceBuilding"
             description "Generate the SCP file which contains the list of files used to train the models"
             list_basenames = new File(project.configuration.user_configuration.data.list_files)
+            data_dir = new File("${project.buildDir}/cmp") // FIXME: more generic
             scp_file = new File(project.train_scp)
         }
 

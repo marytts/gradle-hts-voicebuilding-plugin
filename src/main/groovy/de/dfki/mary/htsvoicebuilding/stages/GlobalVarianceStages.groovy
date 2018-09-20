@@ -22,18 +22,22 @@ import groovy.json.JsonSlurper
 import groovy.xml.*
 
 import de.dfki.mary.htsvoicebuilding.stages.task.gv.*
+import de.dfki.mary.htsvoicebuilding.stages.task.GenerateListTask
+import de.dfki.mary.htsvoicebuilding.stages.task.GenerateMLFTask
+import de.dfki.mary.htsvoicebuilding.stages.task.GenerateSCPTask
+
+
 
 class GlobalVarianceStages
 {
     public static void addTasks(Project project)
     {
-        project.task('generateGVProto', type: GenerateGVProtoTask) {
+        project.task('generateGVProtoFile', type: GenerateGVProtoTask) {
             dependsOn "configurationVoiceBuilding"
 
             proto_file = new File(project.gv_dir, "proto")
             template_file = new File(project.template_dir, 'protogv')
         }
-
 
         project.task('generateStateForceAlignment', type: GenerateStateForceAlignmentTask) {
             def last_clust = project.configuration.user_configuration.settings.training.nb_clustering - 1
@@ -51,308 +55,117 @@ class GlobalVarianceStages
             alignment_dir = new File(project.gv_fal_dir + "/state")
         }
 
-
         project.task('forceAlignment', type: GeneratePhoneForceAlignmentTask)  {
             scp_file = project.generateSCPFile.scp_file
             state_alignment_dir = project.generateStateForceAlignment.alignment_dir
             phone_alignment_dir = new File(project.gv_fal_dir + "/phone")
         }
 
-        project.task('GVCoefficientsExtraction') {
+        project.task('GVCoefficientsExtraction', type: ExtractGVCoefficientsTask) {
             dependsOn "configurationVoiceBuilding"
-            def gv_lab_dir
+
             if (project.configuration.user_configuration.gv.disable_force_alignment) {
-                gv_lab_dir = project.configuration.user_configuration.gv.label_dir
+                lab_dir = new File(project.configuration.user_configuration.gv.label_dir)
             } else {
-                dependsOn.add("forceAlignment")
-                gv_lab_dir = project.gv_fal_dir + "/phone"
+                lab_dir = project.forceAlignment.phone_alignment_dir
             }
 
-            doLast {
-                withPool(project.configuration.nb_proc)
-                {
-                    def file_list = (new File(project.configuration.user_configuration.data.list_files)).readLines() as List
-                    file_list.eachParallel { cur_file ->
-                        def basename = (new File(cur_file)).name
-                        println("dealing with $basename.....")
-                        def fs = project.configuration.user_configuration.signal.frameshift
-                        def label = ""
-                        def i = 0
-
-                        // Reset environment in case of
-                        (new File("$project.buildDir/tmp_" + basename + ".cmp")).delete()
-
-                        project.configuration.user_configuration.models.cmp.streams.each { stream ->
-                            (new File("$project.buildDir/tmp_" + basename + "." + stream.kind)).delete()
-
-                            // Deal with silences (remove them from the coefficient set)
-                            if ((project.configuration.user_configuration.gv.nosil) &&
-                                (project.configuration.user_configuration.gv.silences.size() > 0)) {
-
-                                (new File("$gv_lab_dir/${basename}.lab")).eachLine{ cur_lab ->
-                                    def cur_lab_arr = cur_lab.split()
-                                    def match_sil = project.configuration.user_configuration.gv.silences.findResults { it.toString().equals(cur_lab_arr[2])? it.toString() : null}
-                                    if (match_sil.size() == 0) {
-                                        project.exec {
-                                            def start = Integer.parseInt(cur_lab_arr[0]) / (1.0e4 * fs)
-                                            def end = Integer.parseInt(cur_lab_arr[1]) / (1.0e4 * fs)
-
-                                            def bash_cmd = ["bcut", "-s", start.intValue(), "-e", end.intValue(), "-n", stream.order, "+f"]
-                                            bash_cmd += [stream.coeffDir + "/" + basename + "." + stream.kind]
-                                            bash_cmd += [">>","$project.buildDir/tmp_" + basename + "." + stream.kind]
-
-                                            commandLine  ("bash", "-c", bash_cmd.join(" "))
-                                        }
-                                    }
-                                }
-
-                            } else {
-                                project.copy {
-                                    from stream.coeffDir
-                                    to "$project.buildDir"
-
-                                    include basename + "." + stream.kind // FIXME: hyp. kind = extension
-                                    rename {file -> "tmp." + stream.kind}
-                                }
-                            }
-
-                            project.exec {
-                                def bash_cmd = ["x2x", "+fa","$project.buildDir/tmp_" + basename + "." + stream.kind, "|"]
-                                if (stream.is_msd) {
-                                    bash_cmd += ["grep", "-v", "'1e+10'", "|"]
-                                }
-                                bash_cmd +=  ["x2x", "+af", "|"]
-                                bash_cmd += ["vstat", "-d", "-n", stream.order, "-o", "2", ">>","$project.buildDir/tmp_" + basename + ".cmp"]
-
-                                commandLine ("bash", "-c",  bash_cmd.join(" "))
-                            }
-
-                            // Clean
-                            (new File("$project.buildDir/tmp_" + basename + "." + stream.kind)).delete()
-
-                            i += 4 * (stream.order+1)
-                        }
-
-                        // Add HTK Header
-                        project.exec {
-                            def bash_cmd = ["perl", "$project.buildDir/tmp/utils/addhtkheader.pl", fs, i, 9]
-                            bash_cmd += ["$project.buildDir/tmp_" + basename + ".cmp", ">",  project.gv_data_dir + "/" + basename + ".cmp"]
-                            commandLine("bash", "-c", bash_cmd.join(" "))
-                        }
-
-                        // ugly clean
-                        (new File("$project.buildDir/tmp_" + basename + ".cmp")).delete()
-                    }
-                }
-            }
+            cmp_dir = new File(project.gv_data_dir)
+            scp_file = project.generateSCPFile.scp_file // FIXME: just used to get the filename by the way...
         }
 
-        project.task('generateGVEnvironment', dependsOn: 'GVCoefficientsExtraction')
-        {
-            // FIXME: add inputs
-            outputs.files project.mlf_dir + "/gv.mlf", project.list_dir + "/gv.list"
+        project.task("generateGVLabFiles", type: GenerateGVLabFilesTask) {
+            scp_file = project.generateSCPFile.scp_file // FIXME: just used to get the filename by the way...
+            full_lab_dir = new File(project.configuration.user_configuration.data.full_lab_dir)
+            gv_lab_dir = new File(project.gv_lab_dir)
+        }
 
-            // Lists + CMP + SCP
-            doLast {
-                def model_set = new HashSet()
-                def gv_scp_file = new File(project.gv_scp_dir + "/train.scp")
-                gv_scp_file.write("") // FIXME: ugly way to reinit the file
+        project.task("generateGVSCPFile", type: GenerateSCPTask) {
+            dependsOn 'GVCoefficientsExtraction' // FIXME
+            list_basenames = new File(project.configuration.user_configuration.data.list_files)
+            data_dir = new File(project.gv_data_dir)
+            scp_file = new File(project.gv_scp_dir + "/train.scp")
+        }
 
-                (new File(project.configuration.user_configuration.data.list_files)).eachLine{ cur_file ->
-                    def basename = (new File(cur_file)).name
-                    def label = ""
-                    def i = 0
+        project.task('generateGVListFile', type: GenerateListTask) {
+            lab_dir = project.generateGVLabFiles.gv_lab_dir
+            list_basenames = new File(project.configuration.user_configuration.data.list_files)
+            list_file = new File(project.list_dir + "/gv.list")
 
-                    // Check for NAN
-                    def is_nan = false // FIXME: find a way to check directly in gradle
-                    if (is_nan) {
-                        // FIXME : failing !
-                    } else {
+            // // FIXME: how to integrate this?
+            // if (project.configuration.user_configuration.gv.cdgv) {
+            //     list_file.write(model_set.join("\n"))
+            // } else {
+            //     list_file.write("gv")
+            // }
+        }
 
-                        // Generate lab
-                        def cur_full_lab_file = new File(project.configuration.user_configuration.data.full_lab_dir + "/" + basename + ".lab")
-                        def cur_gv_lab_file = new File(project.gv_lab_dir + "/" + basename + ".lab")
-                        cur_gv_lab_file.write("")
-
-                        def line
-                        cur_full_lab_file.withReader { line = it.readLine() }
-                        def line_arr = line =~ /^[ \t]*([0-9]+)[\t ]+([0-9]+)[ \t]+(.+)/
-                        cur_gv_lab_file.append(line_arr[0][3]+"\n")
-
-                        // Update model set
-                        model_set.add(line_arr[0][3])
-
-                        // Add the file to the list
-                        gv_scp_file.append(project.gv_data_dir + "/" + basename + ".cmp\n")
-                    }
-                }
-
-                // Generate list
-                def list_file = new File(project.list_dir + "/gv.list")
-                if (project.configuration.user_configuration.gv.cdgv) {
-                    list_file.write(model_set.join("\n"))
-                } else {
-                    list_file.write("gv")
-                }
-
-                // Generate MLF
-                def mlf_file = new File(project.mlf_dir + "/gv.mlf")
-                mlf_file.write("#!MLF!#\n")
-                mlf_file.append('"*/*.lab" -> "' + project.gv_lab_dir + '"\n')
-            }
+        project.task('generateGVMLFFile', type: GenerateMLFTask) {
+            lab_dir = project.generateGVLabFiles.gv_lab_dir
+            mlf_file = new File(project.mlf_dir + "/gv.mlf")
         }
 
         /**************************************************************************************************************
          ** Train base models
          **************************************************************************************************************/
-        project.task('generateGVAverage', dependsOn:['generateGVProto', 'generateGVEnvironment'])
+        project.task('generateGVAverage', type: GenerateGVAverageTask)
         {
-            inputs.files project.gv_dir + "/proto", project.mlf_dir + "/gv.mlf", project.list_dir + "/gv.list"
-            outputs.files project.gv_dir + "/average.mmf"
-            doLast {
-                project.configurationVoiceBuilding.hts_wrapper.HCompV(project.gv_scp_dir + "/train.scp",
-                                           project.gv_dir + "/proto",
-                                           project.gv_dir + "/average.mmf",
-                                           project.gv_dir)
-            }
+            scp_file = project.generateGVSCPFile.scp_file
+            proto_file = project.generateGVProtoFile.proto_file
+            average_file = new File(project.gv_dir, "average.mmf")
+            vfloor_file = new File(project.gv_dir, "vFloors")
         }
 
+        project.task('generateGVFullContext', type: GenerateGVFullContextTask) {
+            list_file = project.generateGVListFile.list_file
+            average_file = project.generateGVAverage.average_file
+            vfloor_file = project.generateGVAverage.vfloor_file
 
-        project.task('generateGVFullcontext', dependsOn:'generateGVAverage')
-        {
-            inputs.files project.gv_dir + "/average.mmf"
-            outputs.files project.gv_dir + "/fullcontext.mmf.noembedded.gz"
-
-            doLast {
-
-                // Get average informations into head and tail variables
-                def found = false
-                def head = ""
-                def tail = ""
-                (new File(project.gv_dir + "/average.mmf")).eachLine { line ->
-                    if (line.indexOf("~h") >= 0) {
-                        found = true
-                    } else if (found) {
-                        tail += line + "\n"
-                    } else {
-                        head += line + "\n"
-                    }
-                }
-
-                // Adding vFloor to head
-                (new File(project.gv_dir + "/vFloors")).eachLine { line ->
-                    head += line + "\n"
-                }
-
-                // Generate full context average model
-                def full_mmf = new File(project.gv_dir + "/fullcontext.mmf")
-                full_mmf.write(head)
-                (new File(project.list_dir + "/gv.list")).eachLine { line ->
-                    full_mmf.append("~h \"$line\"\n")
-                    full_mmf.append(tail)
-                }
-            }
+            model_file = new File(project.gv_dir + "/init", "fullcontext.mmf")
         }
 
-        project.task('trainGVFullcontext', dependsOn:'generateGVFullcontext')
+        project.task('trainGVFullcontext', type: TrainGVModelsTask)
         {
-            inputs.files project.gv_dir + "/fullcontext.mmf"
-            outputs.files project.gv_dir + "/fullcontext.mmf.embedded.gz"
+            scp_file = project.generateGVSCPFile.scp_file
+            list_file = project.generateGVListFile.list_file
+            mlf_file = project.generateGVMLFFile.mlf_file
 
-            doLast {
-                project.configurationVoiceBuilding.hts_wrapper.HERestGV(project.gv_scp_dir + "/train.scp",
-                                             project.list_dir + "/gv.list",
-                                             project.mlf_dir + "/gv.mlf",
-                                             project.gv_dir + "/fullcontext.mmf",
-                                             project.gv_dir,
-                                             [
-                                                 "-C", project.non_variance_config_filename,
-                                                 "-s", project.gv_dir + "/stats",
-                                                 "-w", 0
-                                             ])
-            }
+            init_model_file = project.generateGVFullContext.model_file
+            trained_model_file = new File(project.gv_dir + "/trained/fullcontext.mmf")
+
+            options = ["-C", project.non_variance_config_filename, "-s", project.gv_dir + "/stats", "-w", 0]
         }
 
 
         /**************************************************************************************************************
          ** Clustering
          **************************************************************************************************************/
-        project.task("generateGVClustered", dependsOn:"trainGVFullcontext") {
+        project.task("generateGVClustered", type: GenerateGVClusteredTask) {
 
-            // logging.captureStandardOutput LogLevel.INFO
-            // logging.captureStandardError LogLevel.ERROR
+            // List files
+            list_file = project.generateGVListFile.list_file
 
-            def question_file = (new File (project.configuration.user_configuration.data.question_file_gv))
-            inputs.files project.gv_dir + "/fullcontext.mmf", question_file
-            outputs.files project.gv_dir + "/clustered.mmf.noembedded.gz"
+            // Tree related files
+            question_file = new File (project.configuration.user_configuration.data.question_file_gv)
+            script_template_file = new File(project.template_dir, 'cxc.hed');
 
-            doLast {
-
-                project.copy {
-                    from project.gv_dir
-                    into project.gv_dir
-                    include "fullcontext.mmf"
-                    rename {file -> "clustered.mmf"}
-                }
-
-
-                def s = 1
-                project.configuration.user_configuration.models.cmp.streams.each { stream ->
-
-                    // FIXME: what to do with this stuff ?
-                    //             make_edfile_state_gv( $type, $s );
-
-                    //   2. generate HHEd scripts
-                    project.copy {
-
-                        from project.template_dir
-                        into project.hhed_script_dir
-                        include 'cxc.hed'
-                        rename {file -> "cxc_gv_" + stream.name + ".hed"}
-
-                        def questions = question_file.text
-                        def streamline = "TB " + stream.gv.thr + " gv_" + stream.name +  "_ {*.state[2].stream[$s]}\n"
-                        def binding = [
-                        GAM : stream.gv.gam,
-                        STATSFILE:project.gv_dir + "/stats",
-                        QUESTIONS:questions,
-                        STREAMLINE:streamline,
-                        OUTPUT:project.gv_dir + "/" + stream.name + ".inf"
-                        ]
-
-                        expand(binding)
-                    }
-
-                    //   3. build the decision tree
-                    def params = []
-                    if (stream.gv.thr == 0) {
-                        params += ["-m", "-a", stream.gv.mdlf]
-                    }
-
-                    project.configurationVoiceBuilding.hts_wrapper.HHEdOnMMF(project.hhed_script_dir + "cxc_gv_" + stream.name + ".hed",
-                                                  project.list_dir + "/gv.list",
-                                                  project.gv_dir + "/clustered.mmf",
-                                                  project.gv_dir + "/clustered.mmf",
-                                                  params)
-                    s += 1
-                }
-            }
+            // Model files
+            fullcontext_model_file = project.trainGVFullcontext.trained_model_file
+            clustered_model_file = new File(project.gv_dir + "/init", "clustered.mmf")
         }
 
-        project.task("trainGVClustered", dependsOn:"generateGVClustered")
+        project.task("trainGVClustered", type: TrainGVModelsTask)
         {
-            inputs.files project.gv_dir + "/clustered.mmf"
-            outputs.files project.gv_dir + "/clustered.mmf.embbeded.gz"
-            doLast {
-                project.configurationVoiceBuilding.hts_wrapper.HERestGV(project.gv_scp_dir + "/train.scp",
-                                             project.list_dir + "/gv.list",
-                                             project.mlf_dir + "/gv.mlf",
-                                             project.gv_dir + "/clustered.mmf",
-                                             project.gv_dir,
-                                             [])
-            }
+
+            scp_file = project.generateGVSCPFile.scp_file
+            list_file = project.generateGVListFile.list_file
+            mlf_file = project.generateGVMLFFile.mlf_file
+
+            init_model_file = project.generateGVClustered.clustered_model_file
+            trained_model_file = new File(project.gv_dir + "/trained/clustered.mmf")
         }
 
+        /*
         // TODO: finish it !
         project.task("averageGV2clustered", dependsOn:"generateGVAverage")
         {
@@ -435,15 +248,19 @@ class GlobalVarianceStages
                 clustered_mmf.append(tail)
             }
         }
+        */
 
 
         project.task("trainGV")
         {
             if (project.configuration.user_configuration.gv.cdgv) {
                 dependsOn "trainGVClustered"
-            } else {
-                dependsOn "averageGV2clustered"
             }
+
+            /* FIXME: not supported for now ! */
+            // else {
+            //     dependsOn "averageGV2clustered"
+            // }
         }
     }
 }
