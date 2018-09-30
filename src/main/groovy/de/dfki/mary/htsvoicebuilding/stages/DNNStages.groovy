@@ -11,16 +11,7 @@ import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.bundling.Zip
 
-import static groovyx.gpars.GParsPool.runForkJoin
-import static groovyx.gpars.GParsPool.withPool
-
 import de.dfki.mary.htsvoicebuilding.HTSWrapper
-import de.dfki.mary.utils.StandardTask
-import de.dfki.mary.utils.StandardFileTask
-
-import groovy.json.JsonBuilder
-import groovy.json.JsonSlurper
-import groovy.xml.*
 
 import de.dfki.mary.htsvoicebuilding.stages.task.dnn.*
 
@@ -33,7 +24,7 @@ class DNNStages
     {
         project.task("generateSynthConfigFile", type: GenerateConfigFileTask)
         {
-            template_file = new File("${project.template_file}/synth.cfg")
+            template_file = new File("${project.template_dir}/synth.cfg")
             configuration_file = new File("${project.config_dir}/synth.cfg")
         }
 
@@ -91,49 +82,29 @@ class DNNStages
         project.task("convertDurToLab", type: ConvertDurToLabTask) {
             list_file = new File(project.configuration.user_configuration.data.list_files)
             dur_dir = project.paramGeneration.parameters_dir
-            lab_dir = new File("${project.buildDir}/alignment/")
+            lab_dir = new File(project.alignment_dir)
         }
 
-        project.task("makeFeatures", type:StandardTask) {
-            def alignment_lab = null
+        project.task("generateFeatures", type: GenerateFeatureTask) {
+            list_file = new File(project.configuration.user_configuration.data.list_files)
+
+            qconf_file = new File(project.configuration.user_configuration.settings.dnn.qconf)
+
             if (System.getProperty("skipHMMTraining")) {
-                dependsOn "convertDurToLab"
-                alignment_lab = project.tasks.convertDurToLab.output
+                aligned_lab_dir = project.tasks.convertDurToLab.lab_dir
             } else {
-                dependsOn "generateStateForceAlignment"
-                alignment_lab = project.tasks.generateStateForceAlignment.alignment_dir
+                aligned_lab_dir = project.tasks.generateStateForceAlignment.alignment_dir
             }
 
-            def mkf_script_file = "$project.utils_dir/makefeature.pl";
-            output = "$dnn_output_dir/ffi"
 
-            def val = 1E+4 * project.configuration.user_configuration.signal.frameshift;
-
-            outputs.files output
-            doLast {
-                def qconf = (new File(project.configuration.user_configuration.settings.dnn.qconf));
-                withPool(project.configuration.nb_proc)
-                {
-                    def file_list = (new File(project.configuration.user_configuration.data.list_files)).readLines() as List
-                    file_list.eachParallel { cur_file ->
-                        String command = "perl $mkf_script_file $qconf $val ${alignment_lab}/${cur_file}.lab | x2x +af > $output/${cur_file}.ffi".toString()
-                        HTSWrapper.executeOnShell(command)
-                    }
-                }
-            }
+            ffi_dir = new File(project.ffi_dir);
         }
 
-        project.task("makeDNNSCP", type:StandardTask, dependsOn: "makeFeatures") {
-            output = "$dnn_output_dir"
-            doLast {
-                def output_file = new File("$output/train_dnn.scp")
-                output_file.text = ""
-                def ffo_dir = project.buildDir.toString() + "/ffo" // TODO: properly dealing with that
-                (new File(project.configuration.user_configuration.data.list_files)).eachLine { cur_file ->
-                    output_file << "${project.tasks.makeFeatures.output}/${cur_file}.ffi $ffo_dir/${cur_file}.ffo" + System.getProperty("line.separator")
-                }
-            }
-
+        project.task("generateDNNSCP", type: GenerateDNNSCPTask) {
+            ffo_dir = new File(project.ffo_dir);
+            ffi_dir = project.generateFeatures.ffi_dir;
+            scp_file = new File("${project.buildDir}/dnn/train_dnn.scp")
+            list_file = new File(project.configuration.user_configuration.data.list_files)
         }
 
         project.task("generateDNNConfig", type: GenerateTrainingConfigFileTask) {
@@ -142,38 +113,17 @@ class DNNStages
             configuration_file = new File ("$project.config_dir/train_dnn.cfg")
         }
 
-        project.task("computeVAR", type:StandardTask) {
-            dependsOn "configurationVoiceBuilding"
-            output = new File("$dnn_output_dir/var")
-
-            doLast {
-                def ffodim = 0
-                project.configuration.user_configuration.models.ffo.streams.each { stream ->
-                    ffodim += (stream.order + 1) * stream.winfiles.size()
-                }
-                def command_global_var = "cat $project.buildDir/ffo/*.ffo | vstat -l $ffodim -d -o 2 > $output/global.var"
-                HTSWrapper.executeOnShell(command_global_var)
-
-
-                def start = 0
-                project.configuration.user_configuration.models.ffo.streams.each { stream ->
-                    def dim = (stream.order + 1) * stream.winfiles.size()
-                    if (stream.stats)
-                        {
-                        def command_stream_var = "bcut +f -s $start -e ${start+dim-1} -l 1 $output/global.var > $output/${stream.kind}.var"
-                        HTSWrapper.executeOnShell(command_stream_var)
-                    }
-                    start += dim
-                }
-            }
+        project.task("computeVar", type:ComputeVarTask) {
+            ffo_dir = project.generateDNNSCP.ffo_dir
+            var_dir = new File(project.var_dir)
         }
 
         project.task("trainDNN", type:TrainDNNTask) {
             scp_file = project.generateDNNSCP.scp_file
-            var_file = project.computeVAR.var_file
+            var_dir = project.computeVar.var_dir
             configuration_file = project.generateDNNConfig.configuration_file
 
-            model_dir = new File("$dnn_output_dir/models")
+            model_dir = new File(project.dnn_dir)
         }
     }
 }

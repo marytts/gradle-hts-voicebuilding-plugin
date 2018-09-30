@@ -30,10 +30,10 @@ public class ConvertDurToLabTask extends DefaultTask {
     final RegularFileProperty list_file = newInputFile();
 
     @InputFile
-    final DirectoryProperty dur_dir = newInputFile();
+    final DirectoryProperty dur_dir = newInputDirectory();
 
     @OutputFile
-    final DirectoryProperty lab_dir = newOutputFile();
+    final DirectoryProperty lab_dir = newOutputDirectory();
 
     /**
      *  The constructor which defines which worker executor is going to achieve the conversion job

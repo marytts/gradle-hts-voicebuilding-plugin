@@ -74,6 +74,14 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
             gv_lab_dir    = "$project.buildDir/gv/labels"
             gv_scp_dir    = "$project.buildDir/gv/scp" // FIXME
 
+
+            // DNN
+            dnn_dir = "${project.buildDir}/dnn/models"
+            alignment_dir = "$project.buildDir/dnn/alignment"
+            ffo_dir = "$project.buildDir/ffo"
+            ffi_dir = "$project.buildDir/dnn/ffi"
+            var_dir = "$project.buildDir/dnn/var"
+
             trained_files = new HashMap()
 
             // HTS wrapper
@@ -142,6 +150,12 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
             new File(project.gv_lab_dir).mkdirs()
             new File(project.gv_scp_dir).mkdirs()
 
+            // DNN
+            new File(project.dnn_dir).mkdirs()
+            new File(project.ffi_dir).mkdirs()
+            new File(project.var_dir).mkdirs()
+
+            // Template/config
             (new File(project.template_dir)).mkdirs()
             def templates = ['Config.java',
                              'ConfigTest.java',
