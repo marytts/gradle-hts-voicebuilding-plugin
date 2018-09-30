@@ -11,15 +11,6 @@ import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.bundling.Zip
 
-import static groovyx.gpars.GParsPool.runForkJoin
-import static groovyx.gpars.GParsPool.withPool
-
-
-import de.dfki.mary.utils.StandardTask
-
-import groovy.json.JsonBuilder
-import groovy.json.JsonSlurper
-import groovy.xml.*
 
 import de.dfki.mary.htsvoicebuilding.stages.task.gv.*
 import de.dfki.mary.htsvoicebuilding.stages.task.GenerateListTask
