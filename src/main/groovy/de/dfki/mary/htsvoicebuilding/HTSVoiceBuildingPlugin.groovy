@@ -151,9 +151,15 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
             new File(project.gv_scp_dir).mkdirs()
 
             // DNN
-            new File(project.dnn_dir).mkdirs()
-            new File(project.ffi_dir).mkdirs()
-            new File(project.var_dir).mkdirs()
+            if ((project.configuration.user_configuration.settings.training.kind) &&
+                (project.configuration.user_configuration.settings.training.kind.equals("dnn"))) {
+                ext.qconf = project.configuration.user_configuration.settings.dnn.qconf
+                new File(project.dnn_dir).mkdirs()
+                new File(project.ffi_dir).mkdirs()
+                new File(project.var_dir).mkdirs()
+            } else {
+                ext.qconf = null
+            }
 
             // Template/config
             (new File(project.template_dir)).mkdirs()

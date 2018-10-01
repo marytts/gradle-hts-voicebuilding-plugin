@@ -88,7 +88,7 @@ class DNNStages
         project.task("generateFeatures", type: GenerateFeatureTask) {
             list_file = new File(project.configuration.user_configuration.data.list_files)
 
-            qconf_file = new File(project.configuration.user_configuration.settings.dnn.qconf)
+            qconf_file = project.configurationVoiceBuilding.qconf
 
             if (System.getProperty("skipHMMTraining")) {
                 aligned_lab_dir = project.tasks.convertDurToLab.lab_dir
@@ -108,7 +108,7 @@ class DNNStages
         }
 
         project.task("generateDNNConfig", type: GenerateTrainingConfigFileTask) {
-            qconf_file = new File(project.configuration.user_configuration.settings.dnn.qconf)
+            qconf_file = project.configurationVoiceBuilding.qconf
             template_file = new File ("$project.template_dir/train_dnn.cfg")
             configuration_file = new File ("$project.config_dir/train_dnn.cfg")
         }
