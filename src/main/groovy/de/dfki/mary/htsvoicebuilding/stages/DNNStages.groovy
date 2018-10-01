@@ -115,12 +115,12 @@ class DNNStages
 
         project.task("computeVar", type:ComputeVarTask) {
             ffo_dir = project.generateDNNSCP.ffo_dir
-            var_dir = new File(project.var_dir)
+            global_var_file = new File(project.var_dir + "/global.var")
         }
 
         project.task("trainDNN", type:TrainDNNTask) {
             scp_file = project.generateDNNSCP.scp_file
-            var_dir = project.computeVar.var_dir
+            global_var_file = project.computeVar.global_var_file
             configuration_file = project.generateDNNConfig.configuration_file
 
             model_dir = new File(project.dnn_dir)

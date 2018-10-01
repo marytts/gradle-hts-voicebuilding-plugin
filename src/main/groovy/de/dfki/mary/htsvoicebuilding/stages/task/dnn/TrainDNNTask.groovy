@@ -30,8 +30,8 @@ public class TrainDNNTask extends DefaultTask {
     @InputFile
     final RegularFileProperty scp_file = newInputFile()
 
-    @InputDirectory
-    final DirectoryProperty var_dir = newInputDirectory()
+    @InputFile
+    final RegularFileProperty global_var_file = newInputFile()
 
 
     @OutputDirectory
@@ -50,7 +50,7 @@ public class TrainDNNTask extends DefaultTask {
                               configuration_file.getAsFile().get().toString(),
                               scp_file.getAsFile().get().toString(),
                               model_dir.getAsFile().get().toString(),
-                              var_dir.getAsFile().get().toString())
+                              global_var_file.getAsFile().get().toString())
         HTSWrapper.executeOnShell(command.toString())
     }
 }

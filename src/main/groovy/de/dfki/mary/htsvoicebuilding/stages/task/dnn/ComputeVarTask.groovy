@@ -24,8 +24,8 @@ public class ComputeVarTask extends DefaultTask {
     final DirectoryProperty ffo_dir = newInputDirectory()
 
     /** The directory containing the spectrum files */
-    @OutputDirectory
-    final DirectoryProperty var_dir = newOutputDirectory()
+    @OutputFile
+    final RegularFileProperty global_var_file = newOutputFile()
 
 
     /**
@@ -41,7 +41,7 @@ public class ComputeVarTask extends DefaultTask {
         }
 
         // Compute global variance
-        def command_global_var = "cat ${ffo_dir.getAsFile().get()}/*.ffo | vstat -l $ffodim -d -o 2 > ${var_dir.getAsFile().get()}/global.var"
+        def command_global_var = "cat ${ffo_dir.getAsFile().get()}/*.ffo | vstat -l $ffodim -d -o 2 > ${global_var_file.getAsFile().get()}"
         HTSWrapper.executeOnShell(command_global_var)
 
 
@@ -50,7 +50,7 @@ public class ComputeVarTask extends DefaultTask {
         for (def stream: project.configuration.user_configuration.models.ffo.streams) {
             def dim = (stream.order + 1) * stream.winfiles.size()
             if (stream.stats)  {
-                def command_stream_var = "bcut +f -s $start -e ${start+dim-1} -l 1 ${var_dir.getAsFile().get()}/global.var > ${var_dir.getAsFile().get()}/${stream.kind}.var"
+                def command_stream_var = "bcut +f -s $start -e ${start+dim-1} -l 1 ${global_var_file.getAsFile().get()} > ${global_var_file.getAsFile().get().getParent()}/${stream.kind}.var"
                 HTSWrapper.executeOnShell(command_stream_var)
             }
             start += dim

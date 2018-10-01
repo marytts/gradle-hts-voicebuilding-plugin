@@ -2,6 +2,11 @@ package de.dfki.mary.htsvoicebuilding.export
 
 import groovy.json.* // To load the JSON configuration file
 
+import java.nio.file.Files
+import java.nio.file.Paths
+import org.apache.commons.io.FileUtils
+
+
 class Raw {
     def static export(project) {
 
@@ -96,14 +101,14 @@ class Raw {
         if ((user_configuration.settings.training.kind) &&
             (user_configuration.settings.training.kind.equals("dnn")))
         {
-            // FileUtils.copyDirectory(new File("$project.buildDir/DNN/models"),
-            //                         new File("$export_dir/raw/DNN/models"));
+            FileUtils.copyDirectory(new File("$project.buildDir/dnn/models"),
+                                    new File("$export_dir/raw/DNN/models"));
 
-            // FileUtils.copyDirectory(new File("$project.buildDir/DNN/var"),
-            //                         new File("$export_dir/raw/DNN/var"));
+            FileUtils.copyDirectory(new File("$project.buildDir/dnn/var"),
+                                    new File("$export_dir/raw/DNN/var"));
 
-            // Files.copy(Paths.get(user_configuration.settings.dnn.qconf),
-            //            Paths.get("$export_dir/raw/DNN/qconf.conf"));
+            Files.copy(Paths.get(user_configuration.settings.dnn.qconf),
+                       Paths.get("$export_dir/raw/DNN/qconf.conf"));
         }
 
         // Finally copy file
