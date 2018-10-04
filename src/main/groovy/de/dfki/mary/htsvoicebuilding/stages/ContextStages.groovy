@@ -13,15 +13,10 @@ import org.gradle.api.tasks.bundling.Zip
 
 
 // Task imports
-import de.dfki.mary.htsvoicebuilding.stages.task.GenerateMLFTask
-import de.dfki.mary.htsvoicebuilding.stages.task.GenerateListTask
-import de.dfki.mary.htsvoicebuilding.stages.task.GenerateFullModelsTask
+import de.dfki.mary.htsvoicebuilding.stages.task.context.*
+import de.dfki.mary.htsvoicebuilding.stages.task.config.GenerateMLFTask
+import de.dfki.mary.htsvoicebuilding.stages.task.config.GenerateListTask
 import de.dfki.mary.htsvoicebuilding.stages.task.TrainModelsTask
-import de.dfki.mary.htsvoicebuilding.stages.task.ClusteringCMPTask
-import de.dfki.mary.htsvoicebuilding.stages.task.ClusteringDURTask
-import de.dfki.mary.htsvoicebuilding.stages.task.JoinClusteredCMPTask
-import de.dfki.mary.htsvoicebuilding.stages.task.UntyingCMPTask
-import de.dfki.mary.htsvoicebuilding.stages.task.UntyingDURTask
 
 class ContextStages
 {

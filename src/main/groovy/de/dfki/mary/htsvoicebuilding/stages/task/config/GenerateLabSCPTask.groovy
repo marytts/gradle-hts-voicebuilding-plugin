@@ -1,4 +1,4 @@
-package de.dfki.mary.htsvoicebuilding.stages.task
+package de.dfki.mary.htsvoicebuilding.stages.task.config
 
 // Inject
 import javax.inject.Inject;
@@ -18,13 +18,13 @@ import org.gradle.api.tasks.*
  *  Definition of the task type to generate spectrum, f0 and aperiodicity using world vocoder
  *
  */
-public class GenerateSCPTask extends DefaultTask {
+public class GenerateLabSCPTask extends DefaultTask {
     /** The list of files to manipulate */
     @InputFile
     final RegularFileProperty list_basenames = newInputFile()
 
     @InputDirectory
-    final DirectoryProperty data_dir = newInputDirectory()
+    final DirectoryProperty lab_dir = newInputDirectory()
 
     /** The directory containing the spectrum files */
     @OutputFile
@@ -39,7 +39,7 @@ public class GenerateSCPTask extends DefaultTask {
     public void generate() {
         def output = ""
         for (String basename: list_basenames.getAsFile().get().readLines()) {
-            output += "${data_dir.getAsFile().get().toString()}/${basename}.cmp\n"
+            output += "${lab_dir.getAsFile().get().toString()}/${basename}.lab\n"
         }
 
         scp_file.getAsFile().get().text = output

@@ -13,9 +13,9 @@ import org.gradle.api.tasks.bundling.Zip
 
 
 import de.dfki.mary.htsvoicebuilding.stages.task.gv.*
-import de.dfki.mary.htsvoicebuilding.stages.task.GenerateListTask
-import de.dfki.mary.htsvoicebuilding.stages.task.GenerateMLFTask
-import de.dfki.mary.htsvoicebuilding.stages.task.GenerateSCPTask
+import de.dfki.mary.htsvoicebuilding.stages.task.config.GenerateListTask
+import de.dfki.mary.htsvoicebuilding.stages.task.config.GenerateMLFTask
+import de.dfki.mary.htsvoicebuilding.stages.task.config.GenerateSCPTask
 
 
 

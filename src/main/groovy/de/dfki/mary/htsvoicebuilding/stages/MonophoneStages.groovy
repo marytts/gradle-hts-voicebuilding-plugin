@@ -16,8 +16,7 @@ import static groovyx.gpars.GParsPool.withPool
 
 
 // Task imports
-import de.dfki.mary.htsvoicebuilding.stages.task.InitPhoneModelsTask
-import de.dfki.mary.htsvoicebuilding.stages.task.GenerateMonophoneModelTask
+import de.dfki.mary.htsvoicebuilding.stages.task.monophone.*
 import de.dfki.mary.htsvoicebuilding.stages.task.TrainModelsTask
 
 class MonophoneStages {

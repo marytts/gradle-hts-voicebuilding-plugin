@@ -1,4 +1,4 @@
-package de.dfki.mary.htsvoicebuilding.stages.task
+package de.dfki.mary.htsvoicebuilding.stages.task.init
 
 // Inject
 import javax.inject.Inject;

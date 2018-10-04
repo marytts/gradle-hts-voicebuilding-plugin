@@ -15,13 +15,13 @@ import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.bundling.Zip
 
 // Task imports
-import de.dfki.mary.htsvoicebuilding.stages.task.GenerateMLFTask
-import de.dfki.mary.htsvoicebuilding.stages.task.GenerateSCPTask
-import de.dfki.mary.htsvoicebuilding.stages.task.GenerateListTask
-import de.dfki.mary.htsvoicebuilding.stages.task.GeneratePrototypeTask
-import de.dfki.mary.htsvoicebuilding.stages.task.GenerateTrainingConfigurationTask
-import de.dfki.mary.htsvoicebuilding.stages.task.GenerateMOCCConfigurationFile
-import de.dfki.mary.htsvoicebuilding.stages.task.InitModelsTask
+import de.dfki.mary.htsvoicebuilding.stages.task.config.GenerateMLFTask
+import de.dfki.mary.htsvoicebuilding.stages.task.config.GenerateSCPTask
+import de.dfki.mary.htsvoicebuilding.stages.task.config.GenerateListTask
+import de.dfki.mary.htsvoicebuilding.stages.task.init.GeneratePrototypeTask
+import de.dfki.mary.htsvoicebuilding.stages.task.config.GenerateTrainingConfigurationTask
+import de.dfki.mary.htsvoicebuilding.stages.task.config.GenerateMOCCConfigurationFile
+import de.dfki.mary.htsvoicebuilding.stages.task.init.InitModelsTask
 
 
 class InitialisationStages {

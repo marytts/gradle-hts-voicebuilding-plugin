@@ -15,8 +15,8 @@ import de.dfki.mary.htsvoicebuilding.HTSWrapper
 
 import de.dfki.mary.htsvoicebuilding.stages.task.dnn.*
 
-import de.dfki.mary.htsvoicebuilding.stages.task.GenerateLabSCPTask
-import de.dfki.mary.htsvoicebuilding.stages.task.GenerateListTask
+import de.dfki.mary.htsvoicebuilding.stages.task.config.GenerateLabSCPTask
+import de.dfki.mary.htsvoicebuilding.stages.task.config.GenerateListTask
 
 class DNNStages
 {

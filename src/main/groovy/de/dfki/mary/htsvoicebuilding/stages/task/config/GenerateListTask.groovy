@@ -1,4 +1,4 @@
-package de.dfki.mary.htsvoicebuilding.stages.task
+package de.dfki.mary.htsvoicebuilding.stages.task.config
 
 // Inject
 import javax.inject.Inject;
@@ -18,7 +18,7 @@ import org.gradle.api.tasks.*
  *  Definition of the task type to generate spectrum, f0 and aperiodicity using world vocoder
  *
  */
-public class GenerateLabSCPTask extends DefaultTask {
+public class GenerateListTask extends DefaultTask {
     /** The list of files to manipulate */
     @InputFile
     final RegularFileProperty list_basenames = newInputFile()
@@ -28,8 +28,7 @@ public class GenerateLabSCPTask extends DefaultTask {
 
     /** The directory containing the spectrum files */
     @OutputFile
-    final RegularFileProperty scp_file = newOutputFile()
-
+    final RegularFileProperty list_file = newOutputFile()
 
     /**
      *  The actual generateion method
@@ -37,11 +36,21 @@ public class GenerateLabSCPTask extends DefaultTask {
      */
     @TaskAction
     public void generate() {
-        def output = ""
+
+        // Generate set of labels
+        def model_set = new HashSet();
         for (String basename: list_basenames.getAsFile().get().readLines()) {
-            output += "${lab_dir.getAsFile().get().toString()}/${basename}.lab\n"
+            (new File(lab_dir.getAsFile().get().toString(), basename + ".lab")).eachLine { line ->
+                def line_arr = line =~ /^[ \t]*([0-9]+)[ \t]+([0-9]+)[ \t]+(.+)/
+                if (line_arr.size() == 0) {
+                    model_set.add(line)
+                } else {
+                    model_set.add(line_arr[0][3])
+                }
+            }
         }
 
-        scp_file.getAsFile().get().text = output
+        // Save it into the list
+        list_file.getAsFile().get().text = model_set.join("\n")
     }
 }
