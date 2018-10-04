@@ -1,5 +1,7 @@
 package de.dfki.mary.htsvoicebuilding.stages
 
+import java.util.Hashtable;
+
 // Grade imports
 import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
@@ -18,6 +20,7 @@ import de.dfki.mary.htsvoicebuilding.stages.task.GenerateSCPTask
 import de.dfki.mary.htsvoicebuilding.stages.task.GenerateListTask
 import de.dfki.mary.htsvoicebuilding.stages.task.GeneratePrototypeTask
 import de.dfki.mary.htsvoicebuilding.stages.task.GenerateTrainingConfigurationTask
+import de.dfki.mary.htsvoicebuilding.stages.task.GenerateMOCCConfigurationFile
 import de.dfki.mary.htsvoicebuilding.stages.task.InitModelsTask
 
 
@@ -79,40 +82,36 @@ class InitialisationStages {
             }
         }
 
-        project.task("generateMOCCCMPConfigurationFiles") {
+        project.task("generateMOCCCMPConfigurationFiles", type:GenerateMOCCConfigurationFile) {
             dependsOn "configurationVoiceBuilding"
 
-            doLast {
-                project.configuration.user_configuration.models.cmp.streams.each { stream ->
-                    def binding = [mocc : stream.mocc]
-                    project.copy {
-                        from project.template_dir
-                        into project.config_dir
 
-                        include "mocc.cfg"
-                        rename { file -> stream.name + ".cfg" }
+            Hashtable<File, Float> val = new Hashtable<File, Float>();
 
-                        expand(binding)
-                    }
-                }
+            // Fill values
+            def m_files = []
+            project.configuration.user_configuration.models.cmp.streams.each { stream ->
+                def f = new File(project.config_dir, "${stream.name}.cfg")
+                m_files.add(f)
+                mocc_values.put(f, stream.mocc);
             }
+            mocc_files.setFrom(m_files)
+
+            // FIXME: should be dependency
+            template_file = new File(project.template_dir, "mocc.cfg")
         }
 
-        project.task("generateMOCCDURConfigurationFile") {
+        project.task("generateMOCCDURConfigurationFile", type:GenerateMOCCConfigurationFile) {
             dependsOn "configurationVoiceBuilding"
 
-            doLast {
-                def binding = [mocc : project.configuration.user_configuration.models.dur.mocc]
-                project.copy {
-                    from project.template_dir
-                    into project.config_dir
+            def f = new File(project.config_dir, "dur.cfg")
+            mocc_files.setFrom([f])
 
-                    include "mocc.cfg"
-                    rename { file -> "dur.cfg" }
+            // Generate value hash
+            mocc_values.put(f, project.configuration.user_configuration.models.dur.mocc);
 
-                    expand(binding)
-                }
-            }
+            // FIXME: should be dependency
+            template_file = new File(project.template_dir, "mocc.cfg")
         }
 
         project.task('initModels', type: InitModelsTask)
