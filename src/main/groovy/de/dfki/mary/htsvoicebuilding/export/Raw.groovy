@@ -22,13 +22,13 @@ class Raw {
 
         // Copy model files
         project.copy {
-            from project.property("trainFullContext${user_configuration.settings.training.nb_clustering - 1}").trained_cmp_file
+            from project.property("trainClusteredModels${user_configuration.settings.training.nb_clustering - 1}").trained_cmp_file
             into model_dir
             rename { file -> "re_clustered_cmp.mmf" }
         }
 
         project.copy {
-            from project.property("trainFullContext${user_configuration.settings.training.nb_clustering - 1}").trained_dur_file
+            from project.property("trainClusteredModels${user_configuration.settings.training.nb_clustering - 1}").trained_dur_file
             into model_dir
             rename { file -> "re_clustered_dur.mmf" }
         }
@@ -111,7 +111,9 @@ class Raw {
                        Paths.get("$export_dir/raw/DNN/qconf.conf"));
         }
 
-        // Finally copy file
-        (new File("$export_dir/raw/config.json")).text = new JsonBuilder(user_configuration).toPrettyString()
+        // Adapt configuration file and expose it
+        def export_configuration = user_configuration
+        export_configuration.remove("data")
+        (new File("$export_dir/raw/config.json")).text = new JsonBuilder(export_configuration).toPrettyString()
     }
 }
