@@ -97,12 +97,20 @@ class ContextStages
 
                 fullcontext_model_file = project.property("trainFullContext${cur_clus_it}").trained_cmp_file;
                 question_file = new File(project.configuration.user_configuration.data.question_file);
-                clustered_cmp_dir = new File("$project.cmp_model_dir/fullcontext_$cur_clus_it/init/")
+
+                def m_files = []
+                project.configuration.user_configuration.models.cmp.streams.each { stream ->
+                    def f = project.file("$project.cmp_model_dir/fullcontext_$cur_clus_it/init/clustered.mmf.${stream.name}.$local_cur_clus_it")
+                    m_files.add(f)
+                }
+                clustered_model_files.setFrom(m_files)
             }
 
             project.task("joinClusteredCMP" + cur_clus_it, type: JoinClusteredCMPTask) {
                 // FIXME: be more productive than that !
                 dependsOn "clusteringCMP${cur_clus_it}"
+
+                clustered_cmp_files = project.property("clusteringCMP${cur_clus_it}").clustered_model_files
 
                 local_cur_clus_it = cur_clus_it;
                 list_file = project.generateFullList.list_file

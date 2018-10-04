@@ -11,6 +11,7 @@ import org.gradle.api.Action;
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.tasks.*
 
 
@@ -42,8 +43,8 @@ public class ClusteringCMPTask extends DefaultTask {
     @InputFile
     final RegularFileProperty fullcontext_model_file = newInputFile();
 
-    @OutputDirectory
-    final DirectoryProperty clustered_cmp_dir = newOutputDirectory()
+    @OutputFiles
+    ConfigurableFileCollection clustered_model_files = project.files();
 
     /**
      *  The constructor which defines which worker executor is going to achieve the conversion job
@@ -63,6 +64,7 @@ public class ClusteringCMPTask extends DefaultTask {
     @TaskAction
     public void cluster() {
 
+        def clustered_model_files_set = clustered_model_files.getFiles();
         def project_cur_stream = 1
 
         // Prepare parallelism part !
@@ -127,6 +129,15 @@ public class ClusteringCMPTask extends DefaultTask {
                 params += ["-m", "-a", stream.mdlf]
             }
 
+            // Get cluster model file
+            File clustered_model_file = null;
+            for (File cur_file: clustered_model_files_set) {
+                if (cur_file.getName().endsWith("${stream.name}.${local_cur_clus_it}")) {
+                    clustered_model_file = cur_file;
+                    break;
+                }
+            }
+
             // Submit the execution
             workerExecutor.submit(ClusteringCMPWorker.class,
                                   new Action<WorkerConfiguration>() {
@@ -137,7 +148,7 @@ public class ClusteringCMPTask extends DefaultTask {
                             new File(project.hhed_script_dir, "cxc_" + stream.name + "." + local_cur_clus_it + ".hed"),
                             list_file.getAsFile().get(),
                             fullcontext_model_file.getAsFile().get(),
-                            new File("${clustered_cmp_dir.getAsFile().get().toString()}/clustered.mmf.${stream.name}.$local_cur_clus_it"),
+                            clustered_model_file,
                             project.configurationVoiceBuilding.hts_wrapper,
                             params
                         );
