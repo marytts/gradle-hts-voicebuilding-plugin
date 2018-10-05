@@ -63,7 +63,7 @@ class InitialisationStages {
         project.task("generateTrainingConfigurationFile", type: GenerateTrainingConfigurationTask) {
             description "Generate the training configuration file"
             dependsOn "configurationVoiceBuilding"
-            configuration_template = new File(project.template_dir, "train.cfg")
+            template_file = new File(project.template_dir, "train.cfg")
             configuration_file = new File(project.config_dir, "train.cfg")
         }
 
@@ -82,7 +82,7 @@ class InitialisationStages {
             }
         }
 
-        project.task("generateMOCCCMPConfigurationFiles", type:GenerateMOCCConfigurationFile) {
+        project.task("generateMOCCCMPConfigurationFiles", type:GenerateMOCCConfigurationFileTask) {
             dependsOn "configurationVoiceBuilding"
 
 
@@ -101,7 +101,7 @@ class InitialisationStages {
             template_file = new File(project.template_dir, "mocc.cfg")
         }
 
-        project.task("generateMOCCDURConfigurationFile", type:GenerateMOCCConfigurationFile) {
+        project.task("generateMOCCDURConfigurationFile", type:GenerateMOCCConfigurationFileTask) {
             dependsOn "configurationVoiceBuilding"
 
             def f = new File(project.config_dir, "dur.cfg")
@@ -114,27 +114,34 @@ class InitialisationStages {
             template_file = new File(project.template_dir, "mocc.cfg")
         }
 
-        project.task('initModels', type: InitModelsTask)
-        {
+        project.task('initModels', type: InitModelsTask) {
+
+            // logging.captureStandardOutput LogLevel.INFO
+            // logging.captureStandardError LogLevel.ERROR
+
             // FIXME: refactor
             dependsOn "generateTrainingConfigurationFile"
             dependsOn "generateNVCConfigurationFile"
 
-            // logging.captureStandardOutput LogLevel.INFO
-            // logging.captureStandardError LogLevel.ERROR
+            // FIXME: should be dependency
+            vfloor_dur_template_file = new File("$project.template_dir/vfloordur")
+            average_dur_template_file = new File("$project.template_dir/average_dur.mmf")
+
+            // Input prototype/scp
             scp_file = project.generateSCPFile.scp_file
             prototype_file = project.generatePrototype.prototype_file
+
+            // CMP initialisation files
             vfloor_cmp_file = new File(project.cmp_model_dir + "/vFloors")
             init_cmp_file = new File(project.cmp_model_dir + "/init.mmf")
             average_cmp_file = new File(project.cmp_model_dir + "/average.mmf")
 
+            // Duration initialisation files
             vfloor_dur_file = new File(project.dur_model_dir + "/vFloors")
             init_dur_file = new File(project.dur_model_dir + "/init.mmf")
             average_dur_file = new File(project.dur_model_dir + "/average.mmf")
 
 
-            vfloor_dur_template_file = new File("$project.template_dir/vfloordur")
-            average_dur_template_file = new File("$project.template_dir/average_dur.mmf")
 
         }
     }
