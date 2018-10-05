@@ -18,10 +18,9 @@ import org.gradle.api.tasks.bundling.Zip
 import de.dfki.mary.htsvoicebuilding.stages.task.config.GenerateMLFTask
 import de.dfki.mary.htsvoicebuilding.stages.task.config.GenerateSCPTask
 import de.dfki.mary.htsvoicebuilding.stages.task.config.GenerateListTask
-import de.dfki.mary.htsvoicebuilding.stages.task.init.GeneratePrototypeTask
 import de.dfki.mary.htsvoicebuilding.stages.task.config.GenerateTrainingConfigurationTask
-import de.dfki.mary.htsvoicebuilding.stages.task.config.GenerateMOCCConfigurationFile
-import de.dfki.mary.htsvoicebuilding.stages.task.init.InitModelsTask
+import de.dfki.mary.htsvoicebuilding.stages.task.config.GenerateMOCCConfigurationFileTask
+import de.dfki.mary.htsvoicebuilding.stages.task.init.*
 
 
 class InitialisationStages {
@@ -32,16 +31,18 @@ class InitialisationStages {
     public static void addTasks(Project project)
     {
         project.task('generateSCPFile', type: GenerateSCPTask) {
-            dependsOn "configurationVoiceBuilding"
             description "Generate the SCP file which contains the list of files used to train the models"
+            dependsOn "configurationVoiceBuilding"
+
             list_basenames = new File(project.configuration.user_configuration.data.list_files)
             data_dir = new File("${project.buildDir}/cmp") // FIXME: more generic
             scp_file = new File(project.train_scp)
         }
 
         project.task("generateMonoMLF", type: GenerateMLFTask) {
-            dependsOn "configurationVoiceBuilding"
             description "Generate the Master Label File for Monophone training"
+            dependsOn "configurationVoiceBuilding"
+
             mlf_file = new File(project.mono_mlf_filename)
             lab_dir = new File(project.configuration.user_configuration.data.mono_lab_dir)
         }
