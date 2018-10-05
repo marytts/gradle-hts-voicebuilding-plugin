@@ -18,31 +18,38 @@ import org.gradle.api.tasks.*
 import de.dfki.mary.htsvoicebuilding.HTSWrapper;
 
 /**
- *  Definition of the task type to generate spectrum, f0 and aperiodicity using world vocoder
+ *  Task to cluster the CMP part
  *
  */
 public class ClusteringCMPTask extends DefaultTask {
     /** The worker */
     private final WorkerExecutor workerExecutor;
 
+    /** Local cluster index */
+    @Internal
     int local_cur_clus_it;
 
     /** The list of labels file */
     @InputFile
     final RegularFileProperty list_file = newInputFile();
 
+    /** The template for the tree generation script file */
     @InputFile
     final RegularFileProperty script_template_file = newInputFile();
 
+    /** Question file */
     @InputFile
     final RegularFileProperty question_file = newInputFile(); // FIXME: split per stream
 
+    /** Statistics CMP file */
     @InputFile
     final RegularFileProperty stats_cmp_file = newInputFile();
 
+    /** The input fullcontext model file */
     @InputFile
     final RegularFileProperty fullcontext_model_file = newInputFile();
 
+    /** The output clustered files */
     @OutputFiles
     ConfigurableFileCollection clustered_model_files = project.files();
 
@@ -158,9 +165,8 @@ public class ClusteringCMPTask extends DefaultTask {
     }
 }
 
-
 /**
- *  Worker class which generate spectrum, f0 and aperiodicity using the vocoder World
+ *  Worker class which cluster one kind of coefficient part of the CMP part
  *
  */
 class ClusteringCMPWorker implements Runnable {

@@ -54,8 +54,7 @@ class ContextStages
             full_model_dur_file = new File(project.dur_model_dir + "/fullcontext_0/init/fullcontext.mmf")
 
             // Scripts
-            m2f_cmp_script_file = new File(project.hhed_script_dir + "/m2f.cmp.hed")
-            m2f_dur_script_file = new File(project.hhed_script_dir + "/m2f.dur.hed")
+            m2f_script_file = new File(project.hhed_script_dir + "/m2f.hed")
         }
 
         project.task('trainFullContext0', type: TrainModelsTask)

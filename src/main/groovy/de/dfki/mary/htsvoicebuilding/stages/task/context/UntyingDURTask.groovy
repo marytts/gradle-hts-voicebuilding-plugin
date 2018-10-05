@@ -14,43 +14,136 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.*
 
 
+// HTS wrapper
+import de.dfki.mary.htsvoicebuilding.HTSWrapper;
+
+
 /**
  *  Definition of the task type to generate spectrum, f0 and aperiodicity using world vocoder
  *
  */
 public class UntyingDURTask extends DefaultTask {
+    /** The worker */
+    private final WorkerExecutor workerExecutor;
 
+    /** The list of labels file */
     @InputFile
     final RegularFileProperty list_file = newInputFile()
 
+    /** The input clustered model file */
     @InputFile
     final RegularFileProperty input_model_file = newInputFile()
 
+    /** The produced untied model file */
     @OutputFile
     final RegularFileProperty output_model_file = newOutputFile()
 
+    /** The produced untying script file */
     @OutputFile
     final RegularFileProperty untying_script_file = newOutputFile()
 
+    /**
+     *  The constructor which defines which worker executor is going to achieve the conversion job
+     *
+     *  @param workerExecutor the worker executor
+     */
+    @Inject
+    public UntyingDURTask(WorkerExecutor workerExecutor) {
+        super();
+        this.workerExecutor = workerExecutor;
+    }
 
     /**
-     *  The actual generateion method
+     *  The actual generation method
      *
      */
     @TaskAction
     public void generate() {
+        // Submit the execution
+        workerExecutor.submit(UntyingDURWorker.class,
+                              new Action<WorkerConfiguration>() {
+                @Override
+                public void execute(WorkerConfiguration config) {
+                    config.setIsolationMode(IsolationMode.NONE);
+                    config.params(
+                        list_file.getAsFile().get(),
+                        input_model_file.getAsFile().get(),
+                        untying_script_file.getAsFile().get(),
+                        output_model_file.getAsFile().get(),
+                        project.configurationVoiceBuilding.hts_wrapper,
+                        project.configuration.user_configuration
+                    );
+                }
+            });
+    }
+}
+
+
+
+/**
+ *  Worker to join isolated clustered models to a common model
+ *
+ */
+class UntyingDURWorker implements Runnable {
+    /** The file containing the list of monophones */
+    private File list_file;
+
+    /** Trained clustered files */
+    private File clustered_file;
+
+    /** Produced script file */
+    private File script_file;
+
+    /** Produced untied model file */
+    private File untied_file;
+
+    /** HTSWrapper object */
+    private HTSWrapper hts_wrapper;
+
+    /** Configuration object */
+    private Object configuration;
+
+    /**
+     *  The constructor of the worker
+     *
+     */
+    @Inject
+    public UntyingDURWorker(File list_file, File clustered_file,
+                            File script_file, File untied_file,
+                            HTSWrapper hts_wrapper, Object configuration) {
+
+        // Input
+        this.list_file = list_file;
+        this.clustered_file = clustered_file;
+
+        // Output
+        this.script_file = script_file;
+        this.untied_file = untied_file;
+
+        // Utilies
+        this.hts_wrapper = hts_wrapper;
+        this.configuration = configuration;
+    }
+
+
+    /**
+     *  Running method
+     *
+     */
+    @Override
+    public void run() {
 
         //  1. Generate hhed script file
         def script_content = "// untie parameter sharing structure\n"
         script_content += "UT {*.state[2]}\n"
-        untying_script_file.getAsFile().get().text = script_content
+        script_file.text = script_content
 
 
         //  2. untying
-        project.configurationVoiceBuilding.hts_wrapper.HHEdOnMMF(untying_script_file.getAsFile().get().toString(),
-                                                                 list_file.getAsFile().get().toString(),
-                                                                 input_model_file.getAsFile().get().toString(),
-                                                                 output_model_file.getAsFile().get().toString(),
-                                                                 [])
+        hts_wrapper.HHEdOnMMF(script_file.toString(),
+                              list_file.toString(),
+                              clustered_file.toString(),
+                              untied_file.toString(),
+                              [])
     }
 }
