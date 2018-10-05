@@ -1,5 +1,8 @@
 package de.dfki.mary.htsvoicebuilding.stages.task.init
 
+// Template import
+import groovy.text.*
+
 // Inject
 import javax.inject.Inject;
 
@@ -15,34 +18,96 @@ import org.gradle.api.tasks.*
 
 
 /**
- *  Definition of the task type to generate spectrum, f0 and aperiodicity using world vocoder
+ *  Task to generate the prototype file
  *
  */
 public class GeneratePrototypeTask extends DefaultTask {
+    /** The worker */
+    private final WorkerExecutor workerExecutor;
+
     /** The prototype of files to manipulate */
     @InputFile
-    final RegularFileProperty prototype_template = newInputFile()
+    final RegularFileProperty template_file = newInputFile()
 
     /** The directory containing the spectrum files */
     @OutputFile
     final RegularFileProperty prototype_file = newOutputFile()
 
     /**
-     *  The actual generateion method
+     *  The constructor which defines which worker executor is going to achieve the generation job
+     *
+     *  @param workerExecutor the worker executor
+     */
+    @Inject
+    public GeneratePrototypeTask(WorkerExecutor workerExecutor) {
+        super();
+        this.workerExecutor = workerExecutor;
+    }
+
+    /**
+     *  The actual generation method
      *
      */
     @TaskAction
     public void generate() {
+        // Submit the execution
+        workerExecutor.submit(GeneratePrototypeWorker.class,
+                              new Action<WorkerConfiguration>() {
+                @Override
+                public void execute(WorkerConfiguration config) {
+                    config.setIsolationMode(IsolationMode.NONE);
+                    config.params(template_file.getAsFile().get(),
+                                  prototype_file.getAsFile().get(),
+                                  project.configuration.user_configuration);
+                }
+            });
+    }
+}
+
+
+/**
+ *  Worker class to generate the Master Label File (MLF)
+ *
+ */
+class GeneratePrototypeWorker implements Runnable {
+    /** Template file */
+    private File template_file;
+
+    /** Produced prototype file */
+    private File prototype_file;
+
+    /** Configuration object */
+    private Object configuration;
+
+    /**
+     *  The constructor of the worker
+     *
+     *  @param lab_dir the directory containing the labels
+     *  @param mlf_file the MLF file generated
+     */
+    @Inject
+    public GeneratePrototypeWorker(File template_file, File prototype_file, Object configuration) {
+        this.template_file = template_file;
+        this.prototype_file = prototype_file;
+        this.configuration = configuration;
+    }
+
+    /**
+     *  Running method
+     *
+     */
+    @Override
+    public void run() {
 
 
         // Global informations
-        def total_nb_states = project.configuration.user_configuration.models.global.nb_emitting_states + 2
+        def total_nb_states = configuration.models.global.nb_emitting_states + 2
         def nb_stream = 0
         def total_vec_size = 0
         def stream_msd_info = ""
         def stream_vec_size = ""
         def sweights = ""
-        project.configuration.user_configuration.models.cmp.streams.each { stream ->
+        configuration.models.cmp.streams.each { stream ->
             if (stream.is_msd) {
                 for (i in 1..stream.winfiles.size()) {
                     stream_msd_info += " 1"
@@ -62,7 +127,7 @@ public class GeneratePrototypeTask extends DefaultTask {
 
         // Now adapt the proto template
         def binding = [
-            project:        project,
+            configuration:  configuration,
             SWEIGHTS:       sweights,
             GLOBALVECSIZE:  total_vec_size,
             NBSTREAM:       nb_stream,
@@ -71,12 +136,9 @@ public class GeneratePrototypeTask extends DefaultTask {
             NBSTATES:       total_nb_states,
         ]
 
-        // Copy
-        project.copy {
-            from prototype_template.getAsFile().get()
-            into prototype_file.getAsFile().get().getParent()
-
-            expand(binding)
-        }
+        // Adapt template
+        def simple = new SimpleTemplateEngine()
+        def source = template_file.text
+        prototype_file.text = simple.createTemplate(source).make(binding).toString()
     }
 }

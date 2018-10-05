@@ -56,7 +56,8 @@ class InitialisationStages {
 
         project.task('generatePrototype', type: GeneratePrototypeTask) {
             description "Generate the HMM prototype file"
-            prototype_template = new File(project.template_dir, "proto")
+
+            template_file = new File(project.template_dir, "proto")
             prototype_file = new File(project.proto_dir, "proto")
         }
 
@@ -138,11 +139,7 @@ class InitialisationStages {
 
             // Duration initialisation files
             vfloor_dur_file = new File(project.dur_model_dir + "/vFloors")
-            init_dur_file = new File(project.dur_model_dir + "/init.mmf")
             average_dur_file = new File(project.dur_model_dir + "/average.mmf")
-
-
-
         }
     }
 }

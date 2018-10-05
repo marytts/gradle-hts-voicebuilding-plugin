@@ -4,14 +4,14 @@
 <BeginHMM>
   <NumStates> ${NBSTATES}
 <%
-    for (i in 2..project.configuration.user_configuration.models.global.nb_emitting_states+1) {
+    for (i in 2..configuration.models.global.nb_emitting_states+1) {
 %>   <State> $i
        <SWeights> $NBSTREAM $SWEIGHTS
-<%       
+<%
     def state_template = ""
     def stream_index = 1
-    project.configuration.user_configuration.models.cmp.streams.each { stream ->
-        
+    configuration.models.cmp.streams.each { stream ->
+
         if (stream.is_msd) {
             for (s in 1..stream.winfiles.size()) {
 %>			<Stream> $stream_index
@@ -135,6 +135,6 @@
     for (i in 1..NBSTATES) {
         transP += "0.000e+0 "
     }
-    
+
 %>            $transP
 <EndHMM>
