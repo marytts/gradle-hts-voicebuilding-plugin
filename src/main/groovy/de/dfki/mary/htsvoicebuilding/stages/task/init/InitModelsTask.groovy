@@ -21,7 +21,7 @@ import org.gradle.api.tasks.*
 
 
 /**
- *  Definition of the task type to generate spectrum, f0 and aperiodicity using world vocoder
+ *  Task to bootstrap model files
  *
  */
 public class InitModelsTask extends DefaultTask {
@@ -37,10 +37,11 @@ public class InitModelsTask extends DefaultTask {
     @InputFile
     final RegularFileProperty prototype_file = newInputFile();
 
-    /** The list of files to manipulate */
+    /** The template file for the duration vfloor file */
     @InputFile
     final RegularFileProperty vfloor_dur_template_file = newInputFile()
 
+    /** The template file for the duration average file */
     @InputFile
     final RegularFileProperty average_dur_template_file = newInputFile()
 
@@ -56,12 +57,11 @@ public class InitModelsTask extends DefaultTask {
     @OutputFile
     final RegularFileProperty init_cmp_file = newOutputFile()
 
-
-    /** The vfloor file generated for the DUR part */
+    /** The vfloor file generated for the duration part */
     @OutputFile
     final RegularFileProperty vfloor_dur_file = newOutputFile()
 
-    /** The average file generated for the DUR part */
+    /** The average file generated for the duration part */
     @OutputFile
     final RegularFileProperty average_dur_file = newOutputFile()
 
@@ -116,7 +116,7 @@ public class InitModelsTask extends DefaultTask {
 
 
 /**
- *  Worker class to generate the Master Label File (MLF)
+ *  Worker class to bootstrap the models for the CMP part
  *
  */
 class InitCMPModelWorker implements Runnable {
@@ -174,7 +174,7 @@ class InitCMPModelWorker implements Runnable {
 }
 
 /**
- *  Worker class to initialise duration models
+ *  Worker class to bootstrap the models for the duration part
  *
  */
 class InitDurModelWorker implements Runnable {
