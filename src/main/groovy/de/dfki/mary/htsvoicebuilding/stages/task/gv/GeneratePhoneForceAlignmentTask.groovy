@@ -15,20 +15,23 @@ import org.gradle.api.tasks.*
 
 
 /**
- *  Definition of the task type to generate spectrum, f0 and aperiodicity using world vocoder
+ *  Task which generates the phone alignment based on the state alignment
  *
  */
 public class GeneratePhoneForceAlignmentTask extends DefaultTask {
     /** The worker */
     private final WorkerExecutor workerExecutor;
 
+    /** The list of files */
     @InputFile
     final RegularFileProperty scp_file = newInputFile()
 
+    /** The state aligned file directory */
     @InputDirectory
     final DirectoryProperty state_alignment_dir = newInputDirectory()
 
-    /** The directory containing the spectrum files */
+
+    /** The produced phone aligned file directory */
     @OutputDirectory
     final DirectoryProperty phone_alignment_dir = newOutputDirectory()
 
@@ -73,26 +76,23 @@ public class GeneratePhoneForceAlignmentTask extends DefaultTask {
 }
 
 
-
 /**
- *  Worker class which generate spectrum, f0 and aperiodicity using the vocoder World
+ *  Worker to generate the phone alignment based on the state alignment
  *
  */
 class GeneratePhoneForceAlignmentWorker implements Runnable {
+    /** The index of the last state */
     private final int id_last_state;
 
-    /** The input SP file */
+    /** The input stated aligned file */
     private final File state_aligned_file;
 
-    /** The generated CMP file */
+    /** The produced phone aligned file */
     private final File phone_aligned_file;
 
     /**
      *  The contructor which initialize the worker
      *
-     *  @param input_files the input files
-     *  @param cmp_output_file the output CMP file
-     *  @param configuration the configuration object
      */
     @Inject
     public GeneratePhoneForceAlignmentWorker(File state_aligned_file, File phone_aligned_file, int id_last_state) {

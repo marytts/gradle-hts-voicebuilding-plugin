@@ -154,6 +154,7 @@ class ExtractGVCoefficientsWorker implements Runnable {
             def indexes = []
             def labels = lab_file.readLines()
             def label = ""
+
             // Generate the list of index we want to play with !
             for (int i=0; i<input_data.length; i++) {
 
@@ -201,9 +202,9 @@ class ExtractGVCoefficientsWorker implements Runnable {
             RealMatrix cov = new Covariance(mx).getCovarianceMatrix();
 
             // Add variance to variance array
-
             for (int i=0; i<stream.order+1; i++)
                 variance[cmp_index+i] = cov.getEntry(i, i)
+
             cmp_index += stream.order + 1
         }
 
@@ -225,8 +226,6 @@ class ExtractGVCoefficientsWorker implements Runnable {
 
         // Save the cmp file
         Files.write(output_cmp_file.toPath(), output_data);
-
-        //
     }
 
     /**

@@ -19,9 +19,12 @@ import org.gradle.api.tasks.*
  *
  */
 public class TrainModelsTask extends DefaultTask {
-
+    /** The options which need to be passed to HERest */
+    @Internal
     def options = []
 
+    /** DAEM switch */
+    @Internal
     Boolean use_daem = false;
 
     /** The SCP file containing the list of training files */

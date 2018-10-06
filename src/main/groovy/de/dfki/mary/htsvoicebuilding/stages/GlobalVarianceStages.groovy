@@ -117,42 +117,61 @@ class GlobalVarianceStages
 
         project.task('trainGVFullcontext', type: TrainGVModelsTask)
         {
+            // Inputs
             scp_file = project.generateGVSCPFile.scp_file
             list_file = project.generateGVListFile.list_file
             mlf_file = project.generateGVMLFFile.mlf_file
-
             init_model_file = project.generateGVFullContext.model_file
-            trained_model_file = new File(project.gv_dir + "/trained/fullcontext.mmf")
 
-            options = ["-C", project.non_variance_config_filename, "-s", project.gv_dir + "/stats", "-w", 0]
+            // Outputs
+            trained_model_file = new File(project.gv_dir + "/trained/fullcontext.mmf")
+            stats_file = new File(project.gv_dir + "/stats")
+
+            // Parameters
+            options = ["-C", project.non_variance_config_filename, "-w", 0]
         }
 
 
         /**************************************************************************************************************
          ** Clustering
          **************************************************************************************************************/
-        project.task("generateGVClustered", type: GenerateGVClusteredTask) {
-
-            // List files
-            list_file = project.generateGVListFile.list_file
-
-            // Tree related files
-            question_file = new File (project.configuration.user_configuration.data.question_file_gv)
+        project.task("clusteringGV", type: ClusteringGVTask) {
+            // Inputs
             script_template_file = new File(project.template_dir, 'cxc.hed');
-
-            // Model files
+            list_file = project.generateGVListFile.list_file
+            question_file = new File (project.configuration.user_configuration.data.question_file_gv)
+            stats_file = project.trainGVFullcontext.stats_file
             fullcontext_model_file = project.trainGVFullcontext.trained_model_file
-            clustered_model_file = new File(project.gv_dir + "/init", "clustered.mmf")
+
+            // Outputs
+            def m_files = []
+            project.configuration.user_configuration.models.cmp.streams.each { stream ->
+                def f = project.file("$project.gv_dir/init/clustered.mmf.${stream.name}")
+                m_files.add(f)
+            }
+            clustered_model_files.setFrom(m_files)
+        }
+
+        project.task("joinClusteredGV", type: JoinClusteredGVTask) {
+            // FIXME: why do I nee this?
+            dependsOn "clusteringGV"
+
+            // Inputs
+            list_file = project.generateGVListFile.list_file
+            script_file = new File(project.hhed_script_dir + "/join.gv.hed")
+            clustered_cmp_files = project.property("clusteringGV").clustered_model_files
+
+            // outputs
+            clustered_model_file = project.file("$project.gv_dir/init/clustered.mmf")
         }
 
         project.task("trainGVClustered", type: TrainGVModelsTask)
         {
-
             scp_file = project.generateGVSCPFile.scp_file
             list_file = project.generateGVListFile.list_file
             mlf_file = project.generateGVMLFFile.mlf_file
-
-            init_model_file = project.generateGVClustered.clustered_model_file
+            init_model_file = project.joinClusteredGV.clustered_model_file
+            stats_file = new File(project.gv_dir + "/stats_clustered")
             trained_model_file = new File(project.gv_dir + "/trained/clustered.mmf")
         }
 

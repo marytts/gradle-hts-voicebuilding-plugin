@@ -1,5 +1,8 @@
 package de.dfki.mary.htsvoicebuilding.stages.task.gv
 
+// Template
+import groovy.text.*;
+
 // Inject
 import javax.inject.Inject;
 
@@ -13,34 +16,98 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.*
 
-
 /**
- *  Definition of the task type to generate spectrum, f0 and aperiodicity using world vocoder
+ *  Task which generates the prototype for the GV
  *
  */
 public class GenerateGVProtoTask extends DefaultTask {
 
+    /** The worker */
+    private final WorkerExecutor workerExecutor;
+
+    /** The prototype template file */
     @InputFile
     final RegularFileProperty template_file = newInputFile()
 
-    /** The directory containing the spectrum files */
+    /** The produced prototype file */
     @OutputFile
     final RegularFileProperty proto_file = newOutputFile()
 
+    /**
+     *  The constructor which defines which worker executor is going to achieve the conversion job
+     *
+     *  @param workerExecutor the worker executor
+     */
+    @Inject
+    public GenerateGVProtoTask(WorkerExecutor workerExecutor) {
+        super();
+        this.workerExecutor = workerExecutor;
+    }
 
     /**
-     *  The actual generateion method
+     *  The actual generation method
      *
      */
     @TaskAction
     public void generate() {
+        // Submit the execution
+        workerExecutor.submit(GenerateGVProtoWorker.class,
+                              new Action<WorkerConfiguration>() {
+                @Override
+                public void execute(WorkerConfiguration config) {
+                    config.setIsolationMode(IsolationMode.NONE);
+                    config.params(
+                        template_file.getAsFile().get(),
+                        proto_file.getAsFile().get(),
+                        project.configuration.user_configuration
+                    );
+                }
+            });
+    }
+}
+
+/**
+ *  Worker to generate the prototype for the GV
+ *
+ */
+class GenerateGVProtoWorker implements Runnable {
+
+    /** The prototype template file */
+    private File template_file;
+
+    /** The produced prototype file */
+    private File proto_file;
+
+    /** Configuration object */
+    private Object configuration;
+
+    /**
+     *  The constructor of the worker
+     *
+     */
+    @Inject
+    public GenerateGVProtoWorker(File template_file, File proto_file,
+                                 Object configuration) {
+        this.template_file = template_file;
+        this.proto_file = proto_file;
+        // Utilities
+        this.configuration = configuration;
+    }
+
+
+    /**
+     *  Running method
+     *
+     */
+    @Override
+    public void run() {
 
         def nb_stream = 0
         def total_vec_size = 0
         def stream_msd_info = ""
         def stream_vec_size = ""
 
-        project.configuration.user_configuration.models.cmp.streams.each { stream ->
+        configuration.models.cmp.streams.each { stream ->
             stream_msd_info += " 0"
             stream_vec_size += " " + (stream.order + 1)
             total_vec_size += (stream.order + 1)
@@ -48,23 +115,16 @@ public class GenerateGVProtoTask extends DefaultTask {
         }
 
         def binding = [
-            project:project,
-            GLOBALVECSIZE:total_vec_size,
-            NBSTREAM:nb_stream,
-            STREAMMSDINFO:stream_msd_info,
+            configuration: configuration,
+            GLOBALVECSIZE: total_vec_size,
+            NBSTREAM: nb_stream,
+            STREAMMSDINFO: stream_msd_info,
             STREAMVECSIZE: stream_vec_size
         ]
 
         // Now adapt the proto template
-        project.copy {
-            from template_file.getAsFile().get().getParent()
-            into proto_file.getAsFile().get().getParent()
-
-            include template_file.getAsFile().get().getName()
-            rename { file -> proto_file.getAsFile().get().getName() }
-
-
-            expand(binding)
-        }
+        def simple = new SimpleTemplateEngine()
+        def source = template_file.text
+        proto_file.text = simple.createTemplate(source).make(binding).toString()
     }
 }
