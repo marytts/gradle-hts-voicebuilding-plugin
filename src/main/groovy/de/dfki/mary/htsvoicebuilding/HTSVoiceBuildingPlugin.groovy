@@ -92,19 +92,20 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
 
         project.task("configurationVoiceBuilding") {
 
-            dependsOn "configuration"
-
+            // Debug switching
             def debug = false
             if (project.configuration.user_configuration.settings.debug) {
                 debug = true
             }
+
+            // Instanciate HTS wrapper
             def beams = project.configuration.user_configuration.settings.training.beam.split() as List
             ext.hts_wrapper = new HTSWrapper(beams, "$project.train_config_filename",
                                              project.configuration.user_configuration.settings.training.wf,
                                              project.configuration.nb_proc,
                                              "$project.buildDir/tmp/utils/HERest.pl", debug)
 
-            // Generate directory
+            // model directories
 
             // Create model and trees directories
             new File(project.proto_dir).mkdirs()
@@ -316,18 +317,22 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
      ****************************************************************************************/
     private void addRunTask(Project project)
     {
-        project.task('run')
+        project.task('train')
         {
             // RAW
             if (project.configuration.user_configuration.output.raw) {
                 dependsOn "exportRAW"
-            }
+            // }
 
+            // // HTS engine
+            // if (project.configuration.user_configuration.output.raw) {
+            //     dependsOn "exportHTSEngine"
+            // }
 
-            // RAW
-            if (project.configuration.user_configuration.output.marytts) {
-                dependsOn "exportMaryTTS"
-            }
+            // // MaryTTS
+            // if (project.configuration.user_configuration.output.marytts) {
+            //     dependsOn "exportMaryTTS"
+            // }
         }
     }
 }
