@@ -118,9 +118,6 @@ class InitialisationStages {
 
         project.task('initModels', type: InitModelsTask) {
 
-            // logging.captureStandardOutput LogLevel.INFO
-            // logging.captureStandardError LogLevel.ERROR
-
             // FIXME: refactor
             dependsOn "generateTrainingConfigurationFile"
             dependsOn "generateNVCConfigurationFile"

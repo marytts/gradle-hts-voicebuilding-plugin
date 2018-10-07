@@ -25,6 +25,7 @@ public class InitPhoneModelsTask extends DefaultTask {
     private final WorkerExecutor workerExecutor;
 
     /** DAEM initialisation activation */
+    @Internal
     Boolean use_daem;
 
     /** The SCP file containing the list of training files */

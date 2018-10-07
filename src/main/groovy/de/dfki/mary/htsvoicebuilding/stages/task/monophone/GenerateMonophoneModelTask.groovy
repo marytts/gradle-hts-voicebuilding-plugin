@@ -124,8 +124,6 @@ public class GenerateMonophoneModelTask extends DefaultTask {
     }
 }
 
-
-
 /**
  *  Worker class to generate the generate the CMP monophone model
  *

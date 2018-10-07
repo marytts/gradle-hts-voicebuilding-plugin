@@ -101,15 +101,19 @@ class ContextStages
             }
 
             project.task("joinClusteredCMP" + cur_clus_it, type: JoinClusteredCMPTask) {
-                // FIXME: be more productive than that !
+                // FIXME: why do I nee this?
                 dependsOn "clusteringCMP${cur_clus_it}"
 
+                // Inputs
+                list_file = project.generateFullList.list_file
+                script_file = new File(project.hhed_script_dir + "/join.hed." + cur_clus_it)
                 clustered_cmp_files = project.property("clusteringCMP${cur_clus_it}").clustered_model_files
 
-                local_cur_clus_it = cur_clus_it;
-                list_file = project.generateFullList.list_file
+                // outputs
                 clustered_model_file = new File("$project.cmp_model_dir/fullcontext_$cur_clus_it/init/clustered.mmf")
-                script_file = new File(project.hhed_script_dir + "/join.hed." + cur_clus_it)
+
+                // Parameters
+                local_cur_clus_it = cur_clus_it;
             }
 
             project.task("clusteringDUR" + cur_clus_it, type: ClusteringDURTask)
