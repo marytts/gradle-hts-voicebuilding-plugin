@@ -101,7 +101,7 @@ class Raw {
         if ((user_configuration.settings.training.kind) &&
             (user_configuration.settings.training.kind.equals("dnn")))
         {
-            FileUtils.copyDirectory(new File("$project.buildDir/dnn/models"),
+            FileUtils.copyDirectory(project.trainDNN.model_dir,
                                     new File("$export_dir/raw/DNN/models"));
 
             FileUtils.copyDirectory(new File("$project.buildDir/dnn/var"),

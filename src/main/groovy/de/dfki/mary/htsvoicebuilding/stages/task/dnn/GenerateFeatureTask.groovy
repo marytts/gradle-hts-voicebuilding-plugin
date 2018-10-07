@@ -23,8 +23,6 @@ public class GenerateFeatureTask extends DefaultTask {
     /** The worker */
     private final WorkerExecutor workerExecutor;
 
-    int local_cur_clus_it;
-
     /** The list of labels file */
     @InputFile
     final RegularFileProperty list_file = newInputFile();

@@ -22,7 +22,7 @@ class DNNStages
 {
     public static void addTasks(Project project)
     {
-        project.task("generateSynthConfigFile", type: GenerateConfigFileTask)
+        project.task("generateSynthConfigFile", type: GenerateSynthConfigFileTask)
         {
             template_file = new File("${project.template_dir}/synth.cfg")
             configuration_file = new File("${project.config_dir}/synth.cfg")
@@ -88,6 +88,7 @@ class DNNStages
         project.task("generateFeatures", type: GenerateFeatureTask) {
             list_file = new File(project.configuration.user_configuration.data.list_files)
 
+            // FIXME: problem with file
             qconf_file = project.configurationVoiceBuilding.qconf
 
             if (System.getProperty("skipHMMTraining")) {
