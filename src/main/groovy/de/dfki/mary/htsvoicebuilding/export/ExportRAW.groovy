@@ -18,28 +18,29 @@ import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.bundling.Zip
 
 
-class ExportRAW
-{
-    public static void addTasks(Project project)
-    {
-        def last_cluster = project.user_configuration.settings.training.nb_clustering - 1
-        def export_dir = "$project.buildDir/raw"
+class ExportRAW {
+    public static void addTasks(Project project) {
+        def last_cluster = project.configuration.user_configuration.settings.training.nb_clustering - 1
+        def export_dir = new File("$project.buildDir/raw")
+        export_dir.mkdirs()
 
         project.task("exportRAWTrees") {
+            dependsOn project.property("trainClusteredModels${last_cluster}")
+
             doLast {
                 def tree_dir = new File("$export_dir/trees")
                 tree_dir.mkdirs()
 
                 project.configuration.user_configuration.models.cmp.streams.each { stream ->
                     project.copy {
-                        from "${project.tree_dir}/${stream.name}.${last_cluster}.inf"
+                        from "${project.configurationVoiceBuilding.tree_dir}/${stream.name}.${last_cluster}.inf"
                         into tree_dir
                         rename { file -> "${stream.name}.inf"}
                     }
                 }
 
                 project.copy {
-                    from "${project.tree_dir}/dur.${last_cluster}.inf"
+                    from "${project.configurationVoiceBuilding.tree_dir}/dur.${last_cluster}.inf"
                     into tree_dir
                     rename { file -> "dur.inf"}
                 }
@@ -47,6 +48,8 @@ class ExportRAW
         }
 
         project.task("exportRAWHMMModels") {
+            dependsOn project.property("trainClusteredModels${last_cluster}")
+
             doLast {
                 def model_dir = new File("$export_dir/models")
                 model_dir.mkdirs()
@@ -67,16 +70,20 @@ class ExportRAW
         }
 
         project.task("exportRAWLists") {
+            dependsOn project.property("trainClusteredModels${last_cluster}")
+
             doLast {
                 project.copy {
-                    from project.full_list_filename
-                    into "$export_dir/raw"
+                    from project.configurationVoiceBuilding.full_list_filename
+                    into "$export_dir"
                     rename { file -> "full.list" }
                 }
             }
         }
 
         project.task("exportRAWGV") {
+            dependsOn project.property("trainGVClustered")
+
             doLast {
                 def gv_dir = new File("$export_dir/gv")
                 gv_dir.mkdirs()
@@ -84,7 +91,7 @@ class ExportRAW
                 // Trees
                 project.configuration.user_configuration.models.cmp.streams.each { stream ->
                     project.copy {
-                        from "${project.gv_dir}/${stream.name}.inf"
+                        from "${project.configurationVoiceBuilding.gv_dir}/${stream.name}.inf"
                         into gv_dir
                         rename { file -> "${stream.name}.inf"}
                     }
@@ -124,25 +131,28 @@ class ExportRAW
 
 
         project.task("exportRAWDNNModels") {
+            dependsOn project.property("trainDNN")
+
             doLast {
                 FileUtils.copyDirectory(project.trainDNN.model_dir.getAsFile().get(),
-                                        new File("$export_dir/raw/DNN/models"));
+                                        new File("$export_dir/DNN/models"));
 
                 FileUtils.copyDirectory(new File("$project.buildDir/dnn/var"),
-                                        new File("$export_dir/raw/DNN/var"));
+                                        new File("$export_dir/DNN/var"));
 
                 Files.copy(Paths.get(project.configuration.user_configuration.settings.dnn.qconf),
-                           Paths.get("$export_dir/raw/DNN/qconf.conf"));
+                           Paths.get("$export_dir/DNN/qconf.conf"));
             }
         }
 
 
         project.task("exportRAWConfiguration") {
+            dependsOn "configurationVoiceBuilding"
             doLast {
                 // Adapt configuration file and expose it
                 def export_configuration = project.configuration.user_configuration
                 export_configuration.remove("data")
-                (new File("$export_dir/raw/config.json")).text = new JsonBuilder(export_configuration).toPrettyString()
+                (new File("$export_dir/config.json")).text = new JsonBuilder(export_configuration).toPrettyString()
             }
         }
 

@@ -93,15 +93,16 @@ public class ClusteringGVTask extends DefaultTask {
             //   2. generate HHEd scripts (FIXME: output file)
             def questions = question_file.getAsFile().get().text
             def streamline = "TB " + stream.gv.thr + " gv_" + stream.name +  "_ {*.state[2].stream[$s]}\n"
+            def tree_file = new File("${project.configurationVoiceBuilding.gv_dir}/${stream.name}.inf")
             def binding = [
                 GAM : stream.gv.gam,
                 STATSFILE: stats_file.getAsFile().get().toString(),
                 QUESTIONS: questions,
                 STREAMLINE: streamline,
-                OUTPUT: project.gv_dir + "/" + stream.name + ".inf" // FIXME: output file
+                OUTPUT: tree_file.toString()
             ]
 
-            File script_file = new File(project.hhed_script_dir, "cxc_" + stream.name + ".gv.hed")
+            File script_file = new File("${project.configurationVoiceBuilding.hhed_script_dir}/cxc_${stream.name}.gv.hed")
             project.copy {
                 from script_template_file.getAsFile().get()
                 into script_file.getParent()
@@ -110,7 +111,7 @@ public class ClusteringGVTask extends DefaultTask {
             }
 
 
-            //   3. build the decision tree (FIXME: input file would be better!)
+            //   3. build the decision tree
             def params = []
             if (stream.thr == 0) {
                 params += ["-m", "-a", stream.gv.mdlf]

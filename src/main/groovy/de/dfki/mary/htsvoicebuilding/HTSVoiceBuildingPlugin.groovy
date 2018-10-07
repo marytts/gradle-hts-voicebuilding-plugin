@@ -28,67 +28,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
         project.plugins.apply JavaPlugin
         project.plugins.apply MavenPlugin
 
-        project.sourceCompatibility = JavaVersion.VERSION_1_7
-
-        project.ext {
-
-            // Scp
-            train_scp = "$project.buildDir/train.scp"
-            train_dnn_scp = "$project.buildDir/train_dnn.scp"
-
-            // List directories
-            list_dir = "$project.buildDir/lists"
-            mono_list_filename = "$project.list_dir/mono.list"
-            full_list_filename = "$project.list_dir/full.list"
-
-            // MLF Directory
-            mlf_dir = "$project.buildDir/mlf"
-            mono_mlf_filename = "$project.mlf_dir/mono.mlf"
-            full_mlf_filename = "$project.mlf_dir/full.mlf"
-
-            // Tree filenames
-            tree_dir = "$project.buildDir/trees"
-
-            // Script directories
-            hhed_script_dir = "$project.buildDir/edfiles/"
-
-            // Configuration project
-            config_dir = "$project.buildDir/configs"
-            train_config_filename = "$project.config_dir/train.cfg"
-            non_variance_config_filename = "$project.config_dir/nvf.cfg"
-
-            // Output
-            voicesDirectory = "$project.buildDir/voices"
-            genDirectory = "$project.buildDir/gen"
-
-            // Model directories
-            global_model_dir = "$project.buildDir/models"
-            cmp_model_dir = "$project.buildDir/models/cmp"
-            dur_model_dir = "$project.buildDir/models/dur"
-            proto_dir = "$project.buildDir/models/proto"
-
-            // Global variance
-            gv_dir        = "$project.buildDir/gv/models"
-            gv_data_dir   = "$project.buildDir/gv/data"
-            gv_fal_dir    = "$project.buildDir/gv/fal"
-            gv_lab_dir    = "$project.buildDir/gv/labels"
-            gv_scp_dir    = "$project.buildDir/gv/scp" // FIXME
-
-
-            // DNN
-            dnn_dir = "${project.buildDir}/dnn/models"
-            alignment_dir = "$project.buildDir/dnn/alignment"
-            ffo_dir = "$project.buildDir/ffo"
-            ffi_dir = "$project.buildDir/dnn/ffi"
-            var_dir = "$project.buildDir/dnn/var"
-
-            trained_files = new HashMap()
-
-            // HTS wrapper
-            utils_dir = "$project.buildDir/tmp/utils"
-            template_dir = "$project.buildDir/tmp/templates"
-
-        }
+        project.sourceCompatibility = JavaVersion.VERSION_1_8
 
         project.task("configurationVoiceBuilding") {
 
@@ -98,72 +38,118 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
                 debug = true
             }
 
-            // Instanciate HTS wrapper
-            def beams = project.configuration.user_configuration.settings.training.beam.split() as List
-            ext.hts_wrapper = new HTSWrapper(beams, "$project.train_config_filename",
-                                             project.configuration.user_configuration.settings.training.wf,
-                                             project.configuration.nb_proc,
-                                             "$project.buildDir/tmp/utils/HERest.pl", debug)
+            // Data file
+            ext.cmp_dir = project.file("${project.buildDir}/cmp")
+            ext.ffo_dir = project.file("${project.buildDir}/ffo")
 
             // model directories
+            ext.train_scp = project.file("$project.buildDir/train.scp")
 
             // Create model and trees directories
-            new File(project.proto_dir).mkdirs()
-            new File(project.cmp_model_dir).mkdirs()
-            new File(project.dur_model_dir).mkdirs()
-            new File(project.tree_dir).mkdirs()
+            ext.global_model_dir = project.file("$project.buildDir/models")
+            ext.cmp_model_dir = project.file("$project.buildDir/models/cmp")
+            ext.dur_model_dir = project.file("$project.buildDir/models/dur")
+            ext.proto_dir = project.file("$project.buildDir/models/proto")
+            ext.tree_dir = project.file("$project.buildDir/trees")
+            ext.proto_dir.mkdirs()
+            ext.cmp_model_dir.mkdirs()
+            ext.dur_model_dir.mkdirs()
+            ext.tree_dir.mkdirs()
 
-            // MLF & list
-            (new File(project.list_dir)).mkdirs()
-            (new File(project.mlf_dir)).mkdirs()
+            // List directories
+            ext.list_dir = project.file("$project.buildDir/lists")
+            ext.list_dir.mkdirs()
+            ext.mono_list_filename = project.file("$ext.list_dir/mono.list")
+            ext.full_list_filename = project.file("$ext.list_dir/full.list")
 
-            // Scripts and configuration
-            new File(project.hhed_script_dir).mkdirs()
-            new File(project.config_dir).mkdirs()
+            // MLF Directory
+            ext.mlf_dir = project.file("$project.buildDir/mlf")
+            ext.mlf_dir.mkdirs()
+            ext.mono_mlf_filename = project.file("$ext.mlf_dir/mono.mlf")
+            ext.full_mlf_filename = project.file("$ext.mlf_dir/full.mlf")
+
+            // Script directories
+            ext.hhed_script_dir = project.file("$project.buildDir/edfiles/")
+            ext.hhed_script_dir.mkdirs()
+
+            // Configuration project
+            ext.config_dir = project.file("$project.buildDir/configs")
+            ext.config_dir.mkdirs()
+            ext.train_config_filename = project.file("$ext.config_dir/train.cfg")
+            ext.non_variance_config_filename = project.file("$ext.config_dir/nvf.cfg")
 
             // Specific initialisation directory
-            new File(project.cmp_model_dir + "/HRest").mkdirs()
-            new File(project.dur_model_dir + "/HRest").mkdirs()
+            project.file("${ext.cmp_model_dir}/HRest").mkdirs()
+            project.file("${ext.dur_model_dir}/HRest").mkdirs()
             if (!project.configuration.user_configuration.settings.daem.use) {
-                new File(project.cmp_model_dir + "/HInit").mkdirs()
-                new File(project.dur_model_dir + "/Hinit").mkdirs()
+                project.file("${ext.cmp_model_dir}/HInit").mkdirs()
+                project.file("${ext.dur_model_dir}/Hinit").mkdirs()
             }
 
             // Monophone part
-            new File(project.cmp_model_dir + "/monophone/init").mkdirs()
-            new File(project.dur_model_dir + "/monophone/init").mkdirs()
-            new File(project.cmp_model_dir + "/monophone/trained").mkdirs()
-            new File(project.dur_model_dir + "/monophone/trained").mkdirs()
+            project.file("${ext.cmp_model_dir}/monophone/init").mkdirs()
+            project.file("${ext.dur_model_dir}/monophone/init").mkdirs()
+            project.file("${ext.cmp_model_dir}/monophone/trained").mkdirs()
+            project.file("${ext.dur_model_dir}/monophone/trained").mkdirs()
 
             // full context
             for (int i=0; i<project.configuration.user_configuration.settings.training.nb_clustering; i++) {
-                new File(project.cmp_model_dir + "/fullcontext_$i/init").mkdirs()
-                new File(project.dur_model_dir + "/fullcontext_$i/init").mkdirs()
-                new File(project.cmp_model_dir + "/fullcontext_$i/trained").mkdirs()
-                new File(project.dur_model_dir + "/fullcontext_$i/trained").mkdirs()
+                project.file("${ext.cmp_model_dir}/fullcontext_$i/init").mkdirs()
+                project.file("${ext.dur_model_dir}/fullcontext_$i/init").mkdirs()
+                project.file("${ext.cmp_model_dir}/fullcontext_$i/trained").mkdirs()
+                project.file("${ext.dur_model_dir}/fullcontext_$i/trained").mkdirs()
             }
 
             // GV
-            new File(project.gv_dir + "/init").mkdirs()
-            new File(project.gv_dir + "/trained").mkdirs()
-            new File(project.gv_data_dir).mkdirs()
-            new File(project.gv_fal_dir).mkdirs()
-            new File(project.gv_lab_dir).mkdirs()
-            new File(project.gv_scp_dir).mkdirs()
+            if (project.configuration.user_configuration.gv.use) {
+                ext.gv_dir        = project.file("$project.buildDir/gv/models")
+                ext.gv_data_dir   = project.file("$project.buildDir/gv/data")
+                ext.gv_fal_dir    = project.file("$project.buildDir/gv/fal")
+                ext.gv_lab_dir    = project.file("$project.buildDir/gv/labels")
+                ext.gv_scp_dir    = project.file("$project.buildDir/gv/scp") // FIXME
+
+                project.file("${ext.gv_dir}/init").mkdirs()
+                project.file("${ext.gv_dir}/trained").mkdirs()
+                ext.gv_data_dir.mkdirs()
+                ext.gv_fal_dir.mkdirs()
+                ext.gv_lab_dir.mkdirs()
+                ext.gv_scp_dir.mkdirs()
+            } else {
+                ext.gv_dir        = null
+                ext.gv_data_dir   = null
+                ext.gv_fal_dir    = null
+                ext.gv_lab_dir    = null
+                ext.gv_scp_dir    = null
+            }
 
             // DNN
             if ((project.configuration.user_configuration.settings.training.kind) &&
                 (project.configuration.user_configuration.settings.training.kind.equals("dnn"))) {
+
                 ext.qconf = new File(project.configuration.user_configuration.settings.dnn.qconf)
-                new File(project.dnn_dir).mkdirs()
-                new File(project.ffi_dir).mkdirs()
-                new File(project.var_dir).mkdirs()
+                ext.train_dnn_scp = project.file("$project.buildDir/train_dnn.scp")
+                ext.dnn_dir = project.file("${project.buildDir}/dnn/models")
+                ext.alignment_dir = project.file("$project.buildDir/dnn/alignment")
+                ext.ffo_dir = project.file("$project.buildDir/ffo")
+                ext.ffi_dir = project.file("$project.buildDir/dnn/ffi")
+                ext.var_dir = project.file("$project.buildDir/dnn/var")
+
+                ext.dnn_dir.mkdirs()
+                ext.ffi_dir.mkdirs()
+                ext.var_dir.mkdirs()
             } else {
+                ext.train_dnn_scp = null
+                ext.dnn_dir = null
+                ext.alignment_dir = null
+                ext.ffo_dir = null
+                ext.ffi_dir = null
+                ext.var_dir = null
                 ext.qconf = null
             }
 
             // Template/config
-            (new File(project.template_dir)).mkdirs()
+            ext.template_dir = project.file("$project.buildDir/tmp/templates")
+            ext.template_dir.mkdirs()
             def templates = ['Config.java',
                              'ConfigTest.java',
                              'LoadVoiceIT.java',
@@ -182,7 +168,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
                              'voice-straight-hsmm.config',
                              'vfloordur',
             ].collect {
-                project.file "$project.template_dir/$it"
+                project.file "$ext.template_dir/$it"
             }
 
 
@@ -193,7 +179,8 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
             }
 
             // Util. scripts
-            (new File(project.utils_dir)).mkdirs()
+            ext.utils_dir = project.file("$project.buildDir/tmp/utils")
+            ext.utils_dir.mkdirs()
             def utils = ['HERest.pl',
                          'addhtkheader.pl',
                          'makefeature.pl',
@@ -201,7 +188,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
                          'DNNDefine.py',
                          'DNNTraining.py'
             ].collect {
-                project.file "$project.utils_dir/$it"
+                project.file "$ext.utils_dir/$it"
             }
 
             utils.each { outputFile ->
@@ -209,120 +196,42 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
                     stream << getClass().getResourceAsStream("/de/dfki/mary/htsvoicebuilding/utils/$outputFile.name")
                 }
             }
+
+
+            // Instanciate HTS wrapper
+            def beams = project.configuration.user_configuration.settings.training.beam.split() as List
+            ext.hts_wrapper = new HTSWrapper(beams, "$ext.train_config_filename",
+                                             project.configuration.user_configuration.settings.training.wf,
+                                             project.configuration.nb_proc,
+                                             "$project.buildDir/tmp/utils/HERest.pl", debug)
         }
 
 
         project.afterEvaluate {
-            // Add the tasks
+            // Stages
             InitialisationStages.addTasks(project)
             MonophoneStages.addTasks(project)
             ContextStages.addTasks(project)
             GlobalVarianceStages.addTasks(project)
             DNNStages.addTasks(project)
-            addExportingTasks(project)
-            addRunTask(project)
+
+            // Export
+            ExportRAW.addTasks(project)
+
+            //Training task !
+            addTrainTask(project)
         }
     }
-
-    /****************************************************************************************
-     ** Export stages
-     ****************************************************************************************/
-    private void addExportingTasks(Project project) {
-        project.task('training')
-        {
-            if (!System.getProperty("skipHMMTraining"))
-                {
-                dependsOn "trainClusteredModels" + (project.configuration.user_configuration.settings.training.nb_clustering - 1)
-            }
-
-            if (!System.getProperty("skipGVTraining"))
-                {
-                if (project.configuration.user_configuration.gv.use) {
-                    dependsOn.add("trainGV")
-                }
-            }
-
-            if (!System.getProperty("skipDNNTraining"))
-                {
-                if ((project.configuration.user_configuration.settings.training.kind) &&
-                    (project.configuration.user_configuration.settings.training.kind.equals("dnn")))
-                {
-                    dependsOn.add("trainDNN")
-                }
-            }
-        }
-
-        project.task('exportPreparation', dependsOn:'training')
-        {
-            doLast {
-                // Models
-                project.trained_files.put("mmf_cmp", project.cmp_model_dir + "/clustered.mmf." + (project.configuration.user_configuration.settings.training.nb_clustering - 1))
-                project.trained_files.put("mmf_dur", project.dur_model_dir + "/clustered.mmf." + (project.configuration.user_configuration.settings.training.nb_clustering - 1))
-
-                if (project.configuration.user_configuration.gv.use) {
-                    project.trained_files.put("mmf_gv", project.gv_dir + "/clustered.mmf")
-                }
-
-
-                // Tree files
-                project.configuration.user_configuration.models.cmp.streams.each { stream ->
-                    project.trained_files.put(stream.name + "_tree",
-                                              project.tree_dir + "/" + stream.name  + "." + (project.configuration.user_configuration.settings.training.nb_clustering - 1) + ".inf")
-
-                    if (project.configuration.user_configuration.gv.use) {
-                        project.trained_files.put(stream.name + "_tree_gv",
-                                                  project.gv_dir + "/" + stream.name  + ".inf")
-                    }
-                }
-
-                project.trained_files.put("dur_tree",
-                                          project.tree_dir + "/dur." + (project.configuration.user_configuration.settings.training.nb_clustering - 1) + ".inf")
-
-                // Lists
-                project.trained_files.put("full_list",
-                                          project.full_list_filename)
-
-                if (project.configuration.user_configuration.gv.use) {
-                    project.trained_files.put("list_gv",
-                                              project.list_dir + "/gv.list")
-                }
-            }
-        }
-
-        project.task('exportRAW', dependsOn: 'exportPreparation')
-        {
-            doLast {
-                Raw.export(project)
-            }
-        }
-
-
-        /******************************
-         ** MaryTTS
-         ******************************/
-        project.task('prepareMary') {
-            doLast {
-            }
-        }
-
-        project.compileJava.dependsOn project.prepareMary
-
-        project.task('exportMaryTTS', dependsOn:project.jar)  {
-        }
-    }
-
 
     /****************************************************************************************
      ** Run (Main) task
      ****************************************************************************************/
-    private void addRunTask(Project project)
-    {
-        project.task('train')
-        {
+    private void addTrainTask(Project project) {
+        project.task('train') {
             // RAW
             if (project.configuration.user_configuration.output.raw) {
                 dependsOn "exportRAW"
-            // }
+            }
 
             // // HTS engine
             // if (project.configuration.user_configuration.output.raw) {

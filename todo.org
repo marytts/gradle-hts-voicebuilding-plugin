@@ -1,4 +1,4 @@
-* HTS voice building plugin [60%]
+* HTS voice building plugin [90%]
 :PROPERTIES:
 :CATEGORY: tools
 :END:
@@ -19,19 +19,24 @@ task prepareData() {
 #+end_src
 ** DONE Model in binary
 CLOSED: [2016-10-08 Sat 14:46]
-** TODO Cleaning and commenting
+** DONE Cleaning and commenting
+CLOSED: [2018-10-07 Sun 21:50]
 ** DONE Binary/ASCII options
 CLOSED: [2016-10-08 Sat 14:46]
-** TODO Adding log level support
+** TODO Adding log level support for command running
 ** CANCELLED Export as a marytts archive                         :CANCELLED:
 CLOSED: [2017-06-01 Thu 15:43]
 - State "CANCELLED"  from "TODO"       [2017-06-01 Thu 15:43] \\
   We rethink this part differently
-** TODO think about a test protocol
+** CANCELLED think about a test protocol                         :CANCELLED:
+CLOSED: [2018-10-07 Sun 11:04]
+- State "CANCELLED"  from "TODO"       [2018-10-07 Sun 11:04] \\
+  can't do it!
 ** DONE Adding a validator when an HTS command is failing
 CLOSED: [2016-10-25 Tue 09:32]
 ** CANCELLED Publishing instead of run                           :CANCELLED:
 CLOSED: [2018-09-17 Mon 16:36]
 - State "CANCELLED"  from "TODO"       [2018-09-17 Mon 16:36] \\
   deal in another way
-** TODO [#A] See for the output files management
+** DONE [#A] See for the output files management
+CLOSED: [2018-10-07 Sun 21:50]

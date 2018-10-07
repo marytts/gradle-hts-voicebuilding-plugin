@@ -26,8 +26,9 @@ class MonophoneStages {
      ****************************************************************************************/
     public static void addTasks(Project project)
     {
-        project.task('initialiseMonophoneModels', type: InitPhoneModelsTask)
-        {
+        project.task('initialiseMonophoneModels', type: InitPhoneModelsTask)  {
+            description "Initialise the monophone model files using HInit and HRest"
+
             // Some global configuration
             use_daem = project.configuration.user_configuration.settings.daem.use
 
@@ -50,19 +51,20 @@ class MonophoneStages {
             // init_dur_file = project.initModels.init_dur_file
 
             // Output cmp files
-            cmp_hinit_dir = new File("$project.cmp_model_dir/HInit/")
-            cmp_hrest_dir = new File("$project.cmp_model_dir/HRest/")
+            cmp_hinit_dir = project.file("$project.configurationVoiceBuilding.cmp_model_dir/HInit/")
+            cmp_hrest_dir = project.file("$project.configurationVoiceBuilding.cmp_model_dir/HRest/")
 
             // Output dur files
-            dur_hrest_dir = new File("$project.dur_model_dir/HRest/")
+            dur_hrest_dir = project.file("$project.configurationVoiceBuilding.dur_model_dir/HRest/")
         }
 
-        project.task('generateMonophoneMMF', type:GenerateMonophoneModelTask)
-        {
+        project.task('generateMonophoneMMF', type:GenerateMonophoneModelTask) {
+            description "Generate the monophone MMF file"
+
             // Scripts part
-            script_template_cmp_file = new File(project.template_dir, 'lvf.hed')
-            script_cmp_file = new File(project.hhed_script_dir, "lvf.cmp.hed")
-            script_dur_file = new File(project.hhed_script_dir, "lvf.dur.hed")
+            script_template_cmp_file = project.file("${project.configurationVoiceBuilding.template_dir}/lvf.hed")
+            script_cmp_file = project.file("${project.configurationVoiceBuilding.hhed_script_dir}/lvf.cmp.hed")
+            script_dur_file = project.file("${project.configurationVoiceBuilding.hhed_script_dir}/lvf.dur.hed")
 
             // Used vfloor
             vfloor_cmp_file = project.initModels.vfloor_cmp_file
@@ -73,15 +75,16 @@ class MonophoneStages {
             dur_hrest_dir = project.initialiseMonophoneModels.dur_hrest_dir
 
             // Model filename
-            cmp_mmf_file = new File(project.cmp_model_dir + "/monophone/init/monophone.mmf")
-            dur_mmf_file = new File(project.dur_model_dir + "/monophone/init/monophone.mmf")
+            cmp_mmf_file = project.file("${project.configurationVoiceBuilding.cmp_model_dir}/monophone/init/monophone.mmf")
+            dur_mmf_file = project.file("${project.configurationVoiceBuilding.dur_model_dir}/monophone/init/monophone.mmf")
 
             // List file
             list_file = project.generateMonophoneList.list_file
         }
 
-        project.task('trainMonophoneMMF', type: TrainModelsTask)
-        {
+        project.task('trainMonophoneMMF', type: TrainModelsTask) {
+            description "EM training of the monophone model"
+
             use_daem = project.configuration.user_configuration.settings.daem.use
 
             scp_file = project.generateSCPFile.scp_file
@@ -91,8 +94,8 @@ class MonophoneStages {
             init_cmp_file = project.generateMonophoneMMF.cmp_mmf_file
             init_dur_file = project.generateMonophoneMMF.dur_mmf_file
 
-            trained_cmp_file = new File(project.cmp_model_dir + "/monophone/trained/monophone.mmf")
-            trained_dur_file = new File(project.dur_model_dir + "/monophone/trained/monophone.mmf")
+            trained_cmp_file = project.file("${project.configurationVoiceBuilding.cmp_model_dir}/monophone/trained/monophone.mmf")
+            trained_dur_file = project.file("${project.configurationVoiceBuilding.dur_model_dir}/monophone/trained/monophone.mmf")
         }
     }
 }

@@ -22,109 +22,61 @@ class DNNStages
 {
     public static void addTasks(Project project)
     {
-        project.task("generateSynthConfigFile", type: GenerateSynthConfigFileTask)
-        {
-            template_file = new File("${project.template_dir}/synth.cfg")
-            configuration_file = new File("${project.config_dir}/synth.cfg")
-        }
-
-        project.task("generateImposedSCP", type: GenerateLabSCPTask) {
-            list_basenames = new File(project.configuration.user_configuration.data.list_files)
-            lab_dir = new File(project.configuration.user_configuration.data.full_lab_dir)
-            scp_file = new File(project.train_dnn_scp)
-        }
-
-        project.task('generateFullAllList', type: GenerateListTask) {
-            list_basenames = new File(project.configuration.user_configuration.data.list_files)
-            lab_dir = new File(project.configuration.user_configuration.data.full_lab_dir)
-            list_file = new File("${project.list_dir}/list_all")
-        }
-
-        project.task("generateCMPTreeConversionScript", type: GenerateCMPTreeConversionScriptTask) {
-            list_file = project.generateFullAllList.list_file
-            script_file = new File("${project.hhed_script_dir}/cmp_conv.hed")
-        }
-
-        project.task("generateDURTreeConversionScript", type: GenerateDURTreeConversionScriptTask) {
-            list_file = project.generateFullAllList.list_file
-            script_file = new File("${project.hhed_script_dir}/dur_conv.hed")
-        }
-
-        project.task("treeConversion", type: TreeConversionTask) {
-            // List of labels
-            list_file = project.generateFullAllList.list_file
-
-            // Script files
-            dur_script_file = project.generateDURTreeConversionScript.script_file
-            cmp_script_file = project.generateCMPTreeConversionScript.script_file
-
-            // Input mode files
-            input_dur_model_file = new File("${project.global_model_dir}/dur/clustered.mmf.${project.configuration.user_configuration.settings.training.nb_clustering-1}")
-            input_cmp_model_file = new File("${project.global_model_dir}/cmp/clustered.mmf.${project.configuration.user_configuration.settings.training.nb_clustering-1}")
-
-            // Output model files
-            output_dur_model_file = new File("${project.global_model_dir}/dur/clustered_all.mmf.${project.configuration.user_configuration.settings.training.nb_clustering-1}")
-            output_cmp_model_file = new File("${project.global_model_dir}/cmp/clustered_all.mmf.${project.configuration.user_configuration.settings.training.nb_clustering-1}")
-        }
-
-        project.task("paramGeneration", type: GenerateAlignedParametersTask) {
-            configuration_file = project.generateSynthConfigFile.configuration_file
-            scp_file = project.generateImposedSCP.scp_file
-
-            cmp_tiedlist_file = new File("${project.list_dir}/tiedlist_cmp") // FIXME: more linking
-            dur_tiedlist_file = new File("${project.list_dir}/tiedlist_dur") // FIXME: more linking
-
-            cmp_model_file = project.treeConversion.output_cmp_model_file
-            dur_model_file = project.treeConversion.output_dur_model_file
-            parameters_dir = new File("${project.buildDir}/gen_align")
-        }
-
-        project.task("convertDurToLab", type: ConvertDurToLabTask) {
-            list_file = new File(project.configuration.user_configuration.data.list_files)
-            dur_dir = project.paramGeneration.parameters_dir
-            lab_dir = new File(project.alignment_dir)
-        }
-
         project.task("generateFeatures", type: GenerateFeatureTask) {
-            list_file = new File(project.configuration.user_configuration.data.list_files)
+            description "Generate the input linguistic vector features for DNN training"
 
-            // FIXME: problem with file
+            // Inputs
+            list_file = project.file(project.configuration.user_configuration.data.list_files)
             qconf_file = project.configurationVoiceBuilding.qconf
+            aligned_lab_dir = project.generateStateForceAlignment.alignment_dir
 
-            if (System.getProperty("skipHMMTraining")) {
-                aligned_lab_dir = project.tasks.convertDurToLab.lab_dir
-            } else {
-                aligned_lab_dir = project.tasks.generateStateForceAlignment.alignment_dir
-            }
-
-
-            ffi_dir = new File(project.ffi_dir);
+            // Outputs
+            ffi_dir = project.configurationVoiceBuilding.ffi_dir
         }
 
         project.task("generateDNNSCP", type: GenerateDNNSCPTask) {
-            ffo_dir = new File(project.ffo_dir);
+            description "Generate the DNN scp list file"
+
+            // Inputs
+            ffo_dir = project.configurationVoiceBuilding.ffo_dir;
             ffi_dir = project.generateFeatures.ffi_dir;
-            scp_file = new File("${project.buildDir}/dnn/train_dnn.scp")
-            list_file = new File(project.configuration.user_configuration.data.list_files)
+            list_file = project.file(project.configuration.user_configuration.data.list_files)
+
+            // Outputs
+            scp_file = project.file("${project.buildDir}/dnn/train_dnn.scp")
         }
 
         project.task("generateDNNConfig", type: GenerateTrainingConfigFileTask) {
+            description "Generate the DNN configuration training file"
+
+            // Inputs
             qconf_file = project.configurationVoiceBuilding.qconf
-            template_file = new File ("$project.template_dir/train_dnn.cfg")
-            configuration_file = new File ("$project.config_dir/train_dnn.cfg")
+            template_file = project.file("${project.configurationVoiceBuilding.template_dir}/train_dnn.cfg")
+
+            // Outputs
+            configuration_file = project.file("${project.configurationVoiceBuilding.config_dir}/train_dnn.cfg")
         }
 
         project.task("computeVar", type:ComputeVarTask) {
+            description "Generate the global variance for the DNN format"
+
+            // Inputs
             ffo_dir = project.generateDNNSCP.ffo_dir
-            global_var_file = new File(project.var_dir + "/global.var")
+
+            // Outputs
+            global_var_file = project.file("${project.configurationVoiceBuilding.var_dir}/global.var")
         }
 
         project.task("trainDNN", type:TrainDNNTask) {
+            description "Train the DNN model"
+
+            // Inputs
             scp_file = project.generateDNNSCP.scp_file
             global_var_file = project.computeVar.global_var_file
             configuration_file = project.generateDNNConfig.configuration_file
 
-            model_dir = new File(project.dnn_dir)
+            // Outputs
+            model_dir = project.configurationVoiceBuilding.dnn_dir
         }
     }
 }

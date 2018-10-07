@@ -98,15 +98,15 @@ public class ClusteringCMPTask extends DefaultTask {
 
             def streamname = stream.name
 
-            //   2. generate HHEd scripts
+            //   2. generate HHEd scripts (FIXME: output_file would be better for that)
+            def script_file = new File("${project.configurationVoiceBuilding.hhed_script_dir}/cxc_${stream.name}.${local_cur_clus_it}.hed")
+            def tree_file = new File("${project.configurationVoiceBuilding.tree_dir}/${stream.name}.${local_cur_clus_it}.inf")
             project.copy {
 
                 from script_template_file.getAsFile().get().getParent()
-                // FIXME: output_file would be better for that
-                into project.hhed_script_dir
+                into script_file.getParent()
                 include script_template_file.getAsFile().get().getName()
-                // FIXME: output_file would be better for that
-                rename {file -> "cxc_" + stream.name + "." + local_cur_clus_it + ".hed"}
+                rename { file -> script_file.getName() }
 
                 def questions = question_file.getAsFile().get().text
                 def streamline = ""
@@ -120,9 +120,7 @@ public class ClusteringCMPTask extends DefaultTask {
                     STATSFILE: stats_cmp_file.getAsFile().get().toString(),
                     QUESTIONS: questions,
                     STREAMLINE: streamline,
-
-                    // FIXME: output file would be better for that !
-                    OUTPUT: project.tree_dir + "/" + stream.name + "." + local_cur_clus_it + ".inf"
+                    OUTPUT: tree_file.toString()
                 ]
 
                 expand(binding)
@@ -130,7 +128,7 @@ public class ClusteringCMPTask extends DefaultTask {
 
 
             //   3. build the decision tree (FIXME: input file would be better!)
-            def params = ["-C", project.config_dir + "/" + stream.name + ".cfg"]
+            def params = ["-C", "${project.configurationVoiceBuilding.config_dir}/${stream.name}.cfg"]
 
             if (stream.thr == 0) {
                 params += ["-m", "-a", stream.mdlf]
@@ -152,7 +150,7 @@ public class ClusteringCMPTask extends DefaultTask {
                     public void execute(WorkerConfiguration config) {
                         config.setIsolationMode(IsolationMode.NONE);
                         config.params(
-                            new File(project.hhed_script_dir, "cxc_" + stream.name + "." + local_cur_clus_it + ".hed"),
+                            script_file,
                             list_file.getAsFile().get(),
                             fullcontext_model_file.getAsFile().get(),
                             clustered_model_file,
@@ -171,15 +169,23 @@ public class ClusteringCMPTask extends DefaultTask {
  */
 class ClusteringCMPWorker implements Runnable {
 
-    /** The HTS wrapper helper object */
-    private HTSWrapper hts_wrapper;
-    private ArrayList<String> params;
+    /** List of labels file */
     private File list_file;
-    private File fullcontext_model_file;
-    private File clustered_model_file;
+
+    /** Conversion script file */
     private File script_file;
 
+    /** Input full context model file */
+    private File fullcontext_model_file;
 
+    /** Produced clustered model file */
+    private File clustered_model_file;
+
+    /** The HTS wrapper helper object */
+    private HTSWrapper hts_wrapper;
+
+    /** Conversion parameters */
+    private ArrayList<String> params;
 
     /**
      *  The contructor which initialize the worker
@@ -192,10 +198,15 @@ class ClusteringCMPWorker implements Runnable {
     public ClusteringCMPWorker(File script_file, File list_file,
                                File fullcontext_model_file, File clustered_model_file,
                                HTSWrapper hts_wrapper, ArrayList<String> params) {
+        // Input
         this.script_file = script_file;
         this.list_file = list_file;
         this.fullcontext_model_file = fullcontext_model_file;
+
+        // Outputs
         this.clustered_model_file = clustered_model_file;
+
+        // Utilities
         this.hts_wrapper = hts_wrapper;
         this.params = params;
     }
@@ -207,6 +218,7 @@ class ClusteringCMPWorker implements Runnable {
     @Override
     public void run() {
 
+        // Cluster
         hts_wrapper.HHEdOnMMF(script_file.toString(),
                               list_file.toString(),
                               fullcontext_model_file.toString(),
