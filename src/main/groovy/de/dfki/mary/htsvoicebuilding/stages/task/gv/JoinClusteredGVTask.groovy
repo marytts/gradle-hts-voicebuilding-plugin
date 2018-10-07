@@ -155,12 +155,11 @@ class JoinClusteredGVWorker implements Runnable {
 
             // Generate script
             def script_content = ""
-            def i_stream = 0
+            def i_stream = 1
             configuration.models.cmp.streams.each { stream ->
 
                 // Find the accurate coef clustered model file
-                cur_clustered_file = clustered_files.get(i_stream);
-
+                cur_clustered_file = clustered_files.get(i_stream-1);
 
                 // Generate joing part of the script
                 if (i_stream > 1) {
