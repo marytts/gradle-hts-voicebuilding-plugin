@@ -153,7 +153,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
             // DNN
             if ((project.configuration.user_configuration.settings.training.kind) &&
                 (project.configuration.user_configuration.settings.training.kind.equals("dnn"))) {
-                ext.qconf = project.configuration.user_configuration.settings.dnn.qconf
+                ext.qconf = new File(project.configuration.user_configuration.settings.dnn.qconf)
                 new File(project.dnn_dir).mkdirs()
                 new File(project.ffi_dir).mkdirs()
                 new File(project.var_dir).mkdirs()
