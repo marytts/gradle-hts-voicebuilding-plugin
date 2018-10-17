@@ -150,23 +150,30 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
             // Template/config
             ext.template_dir = project.file("$project.buildDir/tmp/templates")
             ext.template_dir.mkdirs()
-            def templates = ['Config.java',
-                             'ConfigTest.java',
-                             'LoadVoiceIT.java',
-                             'average_dur.mmf',
-                             'cxc.hed',
-                             'database.config',
-                             'lvf.hed',
-                             'mmf2htsengine.hed',
-                             'mocc.cfg',
-                             'nvf.cfg',
-                             'proto',
-                             'protogv',
-                             'synth.cfg',
-                             'train.cfg',
-                             'train_dnn.cfg',
-                             'voice-straight-hsmm.config',
-                             'vfloordur',
+            def templates = [
+                // HTS default
+                'average_dur.mmf',
+                'cxc.hed',
+                'lvf.hed',
+                'mmf2htsengine.hed',
+                'mocc.cfg',
+                'nvf.cfg',
+                'proto',
+                'protogv',
+                'synth.cfg',
+                'train.cfg',
+                'train_dnn.cfg',
+                'vfloordur',
+
+                // HTS engine
+                "htsvoice",
+
+                // MaryTTS
+                'Config.java',
+                'ConfigTest.java',
+                'LoadVoiceIT.java',
+                'voice-straight-hsmm.config',
+                'database.config',
             ].collect {
                 project.file "$ext.template_dir/$it"
             }
@@ -217,6 +224,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
 
             // Export
             ExportRAW.addTasks(project)
+            ExportHTSEngine.addTasks(project)
 
             //Training task !
             addTrainTask(project)
@@ -233,10 +241,10 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
                 dependsOn "exportRAW"
             }
 
-            // // HTS engine
-            // if (project.configuration.user_configuration.output.raw) {
-            //     dependsOn "exportHTSEngine"
-            // }
+            // HTS engine
+            if (project.configuration.user_configuration.output.hts_engine) {
+                dependsOn "exportHTSEngine"
+            }
 
             // // MaryTTS
             // if (project.configuration.user_configuration.output.marytts) {

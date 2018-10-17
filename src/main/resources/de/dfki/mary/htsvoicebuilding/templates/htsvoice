@@ -1,0 +1,65 @@
+[GLOBAL]
+HTS_VOICE_VERSION:1.0
+SAMPLING_FREQUENCY:${configuration.signal.samplerate}
+FRAME_PERIOD:${configuration.signal.samplerate * configuration.signal.frameshift / 1000}
+NUM_STATES:${configuration.models.global.nb_emitting_states}
+NUM_STREAMS:${configuration.models.cmp.streams.size()}
+<%
+    def v_stream_type = []
+    configuration.models.cmp.streams.each { stream ->
+        v_stream_type.add(stream.name.toUpperCase())
+    }
+    STREAM_TYPE = v_stream_type.join(",")
+%>STREAM_TYPE:$STREAM_TYPE
+FULLCONTEXT_FORMAT:HTS_TTS_ENG
+FULLCONTEXT_VERSION:1.0
+GV_OFF_CONTEXT:<% GV_OFF="\"" + configuration.gv.silences.join("\", \"") + "\"" %>$GV_OFF
+COMMENT:
+[STREAM]
+<%
+    def v_length = []
+    configuration.models.cmp.streams.each { stream ->
+        v_length.add("VECTOR_LENGTH[${stream.name.toUpperCase()}]:${stream.order+1}")
+    }
+    VECTOR_LENGTH = v_length.join("\n")
+%>$VECTOR_LENGTH
+<%
+    def v_is_msd = []
+    configuration.models.cmp.streams.each { stream ->
+        if (stream.is_msd) {
+            v_is_msd.add("IS_MSD[${stream.name.toUpperCase()}]:1")
+        } else {
+            v_is_msd.add("IS_MSD[${stream.name.toUpperCase()}]:0")
+        }
+    }
+    IS_MSD = v_is_msd.join("\n")
+%>$IS_MSD
+<%
+    def v_num_windows = []
+    configuration.models.cmp.streams.each { stream ->
+        v_num_windows.add("NUM_WINDOWS[${stream.name.toUpperCase()}]:${stream.winfiles.size()}")
+    }
+    NUM_WINDOWS = v_num_windows.join("\n")
+%>$NUM_WINDOWS
+<%
+    def v_use_gv = []
+    configuration.models.cmp.streams.each { stream ->
+        if (configuration.gv.use) {
+            v_use_gv.add("USE_GV[${stream.name.toUpperCase()}]:1")
+        } else {
+            v_use_gv.add("USE_GV[${stream.name.toUpperCase()}]:0")
+        }
+    }
+    USE_GV = v_use_gv.join("\n")
+%>$USE_GV
+<%
+    def v_option = []
+    configuration.models.cmp.streams.each { stream ->
+        if (stream.kind == "mgc") { // FIXME: hardcoded
+            v_option.add("OPTION[${stream.name.toUpperCase()}]: ALPHA=0.55") // FIXME: hardcoded !!!!
+        } else {
+            v_option.add("OPTION[${stream.name.toUpperCase()}]:")
+        }
+    }
+    OPTION = v_option.join("\n")
+%>$OPTION
