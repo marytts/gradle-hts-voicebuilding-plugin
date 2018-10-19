@@ -118,11 +118,11 @@ class ExportRAW {
 
                 (new File("$export_dir/win")).mkdirs()
                 project.configuration.user_configuration.models.cmp.streams.each { stream ->
-                    stream.winfiles.each { winfilename ->
+                    stream.winfiles.each { win_file ->
                         project.copy {
-                            from winfilename
+                            from win_file
                             into "$export_dir/win/"
-                            rename { file -> (new File(winfilename)).getName() }
+                            rename { file -> win_file.getName() }
                         }
                     }
                 }
