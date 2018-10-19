@@ -183,7 +183,7 @@ class GlobalVarianceStages
             // Inputs
             script_template_file = project.file("${project.configurationVoiceBuilding.template_dir}/cxc.hed");
             list_file = project.generateGVListFile.list_file
-            question_file = new File (project.configuration.user_configuration.data.question_file_gv)
+            question_file = project.configuration.user_configuration.data.question_file_gv
             stats_file = project.trainGVFullcontext.stats_file
             fullcontext_model_file = project.trainGVFullcontext.trained_model_file
 
