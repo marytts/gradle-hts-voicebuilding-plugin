@@ -204,12 +204,17 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
                 }
             }
 
+            // Get the number of processes
+            def nb_proc = 1
+            if (project.gradle.startParameter.isParallelProjectExecutionEnabled()) {
+                nb_proc = project.gradle.startParameter.getMaxWorkerCount()
+            }
 
             // Instanciate HTS wrapper
             def beams = project.configuration.user_configuration.settings.training.beam.split() as List
             ext.hts_wrapper = new HTSWrapper(beams, "$ext.train_config_filename",
                                              project.configuration.user_configuration.settings.training.wf,
-                                             project.configuration.nb_proc,
+                                             nb_proc,
                                              "$project.buildDir/tmp/utils/HERest.pl", debug)
         }
 
