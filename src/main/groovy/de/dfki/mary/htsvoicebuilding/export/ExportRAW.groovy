@@ -152,6 +152,17 @@ class ExportRAW {
                 // Adapt configuration file and expose it
                 def export_configuration = project.configuration.user_configuration
                 export_configuration.remove("data")
+
+                export_configuration.models.cmp.streams.each { stream ->
+                    def win = []
+                    stream.winfiles.each { win_file ->
+                        win.add(win_file.getName())
+                    }
+                    stream.winfiles = win
+                }
+
+                // TODO: convert all files references to string
+
                 (new File("$export_dir/config.json")).text = new JsonBuilder(export_configuration).toPrettyString()
             }
         }
