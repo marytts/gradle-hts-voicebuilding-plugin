@@ -1,6 +1,6 @@
 // load variance flooring macro
 FV "${VFLOORFILE}"
-<% if (NB_STREAMS > 1) {%>
 // tie stream weights
+<% if ((NB_STREAMS > 1) && TIE) {%>
 TI SW_all {*.state[${STARTSTATE}-${ENDSTATE}].weights}
 <% } %>

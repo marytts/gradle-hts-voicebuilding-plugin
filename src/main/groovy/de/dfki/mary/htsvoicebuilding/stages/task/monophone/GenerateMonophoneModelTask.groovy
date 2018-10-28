@@ -86,6 +86,14 @@ public class GenerateMonophoneModelTask extends DefaultTask {
      */
     @TaskAction
     public void generate() {
+        // For CMP check if we need to tie
+        boolean tie_needed = false;
+        for (def stream: project.configuration.user_configuration.models.cmp.streams) {
+            if (stream.weight != 1.0) {
+                tie_needed = true;
+                break;
+            }
+        }
 
         // Submit the execution of the CMP part
         workerExecutor.submit(GenerateCMPMonophoneModelWorker.class,
@@ -101,6 +109,7 @@ public class GenerateMonophoneModelTask extends DefaultTask {
                                   cmp_mmf_file.getAsFile().get(),
                                   (project.configuration.user_configuration.models.global.nb_emitting_states+1).intValue(),
                                   project.configuration.user_configuration.models.cmp.streams.size(),
+                                  tie_needed,
                                   project.configurationVoiceBuilding.hts_wrapper
                     );
                 }
@@ -153,6 +162,9 @@ class GenerateCMPMonophoneModelWorker implements Runnable {
     /** The number of streams in the HMM */
     private int nb_streams;
 
+    /** Tie is needed */
+    private boolean tie_needed;
+
     /** HTSWrapper object */
     private HTSWrapper hts_wrapper;
 
@@ -163,7 +175,8 @@ class GenerateCMPMonophoneModelWorker implements Runnable {
     @Inject
     public GenerateCMPMonophoneModelWorker(File list_file, File script_template_cmp_file,
                                            File vfloor_cmp_file, File cmp_hrest_dir,
-                                           File script_cmp_file, File cmp_mmf_file, int end_state, int nb_streams,
+                                           File script_cmp_file, File cmp_mmf_file,
+                                           int end_state, int nb_streams, boolean tie_needed,
                                            HTSWrapper hts_wrapper) {
         // Input files
         this.list_file = list_file;
@@ -178,6 +191,7 @@ class GenerateCMPMonophoneModelWorker implements Runnable {
         // some parameters
         this.end_state = end_state;
         this.nb_streams = nb_streams;
+        this.tie_needed = tie_needed
 
         this.hts_wrapper = hts_wrapper;
     }
@@ -194,7 +208,8 @@ class GenerateCMPMonophoneModelWorker implements Runnable {
             STARTSTATE: 2,
             ENDSTATE: end_state,
             VFLOORFILE: vfloor_cmp_file.toString(),
-            NB_STREAMS: nb_streams
+            NB_STREAMS: nb_streams,
+            TIE: tie_needed
         ]
 
         def simple = new SimpleTemplateEngine()
