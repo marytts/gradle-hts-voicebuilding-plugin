@@ -36,7 +36,7 @@ class HTSWrapper implements Serializable {
         map_command["hrest"]     = ["HRest"]     + global_options + ["-m", "1", "-u", "tmvw", "-w", training_wf]
         map_command["hhed"]      = ["HHEd"]      + global_options + ["-p", "-i"]
         map_command["hsmmalign"] = ["HSMMAlign"] + (global_options - ["-B"]) + ["-w", "1.0", "-t"] + beams // For this specific command, no binary flag!
-        map_command["hmgens"] = ["HMGenS"] + (global_options - ["-B"]) + ["-t"] + beams + ["-m"]
+        map_command["hmgens"]    = ["HMGenS"]    + (global_options - ["-B"]) + ["-t"] + beams + ["-m"]
 
         // Parallize commands
         if (nb_proc > 1) {
@@ -65,7 +65,6 @@ class HTSWrapper implements Serializable {
         process.waitFor();
 
         if (process.exitValue() != 0) {
-
             throw new Exception("hts command failed: " + command)
         }
     }
@@ -150,6 +149,24 @@ class HTSWrapper implements Serializable {
 
         executeOnShell(cur_command.join(" "))
     }
+
+
+    public void HHEdOnMMFNoOutputArgs(def hhed_script_filename, def list_filename, def input_mmf, def params)
+    {
+        def cur_command = map_command["hhed"]
+        cur_command +=  [
+            "-H", input_mmf
+        ]
+        cur_command += params
+
+        cur_command += [
+            hhed_script_filename,
+            list_filename
+        ]
+
+        executeOnShell(cur_command.join(" "))
+    }
+
 
     public void HERest(def scp_filename, def list_filename, def mlf_filename,
                        def cmp_input_filename, def dur_input_filename,

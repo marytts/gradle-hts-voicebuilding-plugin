@@ -167,6 +167,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
 
                 // HTS engine
                 "htsvoice",
+                "cv_hts_engine.hed",
 
                 // MaryTTS
                 'Config.java',
