@@ -52,20 +52,19 @@ class ExportHTSEngine {
 
             // Inputs
             script_template_file = project.file("${project.configurationVoiceBuilding.template_dir}/cv_hts_engine.hed");
-            list_file = project.file("/home/slemaguer/work/expes/current/hts-gradle-training-demo/2.3.1/data/lists/full.list")
-            // FIXME: project.generateFullList.list_file
+            list_file = project.generateFullList.list_file
 
+            // FIXME: find a more direct part for the trees!
             def m_files = []
             project.configuration.user_configuration.models.cmp.streams.each { stream ->
-                def f = project.file("${project.configurationVoiceBuilding.tree_dir}/${stream.kind}.${last_cluster}.inf")
-                // project.file("/home/slemaguer/work/expes/current/hts-gradle-training-demo/2.3.1/trees/ver1/cmp/${stream.kind}.inf.untied")
-                // FIXME:
-                m_files.add(f)
+                for (i in 2..project.configuration.user_configuration.models.global.nb_emitting_states+1) {
+                    def f = project.file("${project.configurationVoiceBuilding.tree_dir}/fullcontext_${last_cluster}/${stream.name}_${i}.inf")
+                    m_files.add(f)
+                }
             }
             input_tree_files.setFrom(m_files)
 
-            input_model_file = project.property("trainClusteredModels${last_cluster}").trained_cmp_file
-            // FIXME: project.file("/home/slemaguer/work/expes/current/hts-gradle-training-demo/2.3.1/models/ver1/cmp/re_clustered.mmf")
+            input_model_file = project.property("trainClusteredModels_${last_cluster}").trained_cmp_file
 
             // Outputs
             m_files = []
@@ -99,7 +98,7 @@ class ExportHTSEngine {
             list_file = project.generateFullList.list_file
 
             input_tree_file = project.file("${project.configurationVoiceBuilding.tree_dir}/dur.${last_cluster}.inf")
-            input_model_file = project.property("trainClusteredModels${last_cluster}").trained_dur_file
+            input_model_file = project.property("trainClusteredModels_${last_cluster}").trained_dur_file
 
             // Outputs
             script_file = project.file("${project.configurationVoiceBuilding.hhed_script_dir}/cv_hts_engine_dur.hed")

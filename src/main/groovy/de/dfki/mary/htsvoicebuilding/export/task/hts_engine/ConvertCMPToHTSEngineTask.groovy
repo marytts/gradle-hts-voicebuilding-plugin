@@ -1,7 +1,7 @@
 package de.dfki.mary.htsvoicebuilding.export.task.hts_engine
 
-// Template import
-import groovy.text.*;
+// List
+import java.util.ArrayList;
 
 // HTS Wrapper import
 import de.dfki.mary.htsvoicebuilding.HTSWrapper;
@@ -76,6 +76,8 @@ public class ConvertCMPToHTSEngineTask extends DefaultTask {
     @TaskAction
     public void generate() {
 
+        // Sort by filename
+
         def start_stream = 1;
         for (def stream: project.configuration.user_configuration.models.cmp.streams) {
 
@@ -89,11 +91,10 @@ public class ConvertCMPToHTSEngineTask extends DefaultTask {
             }
 
             // Get the input tree file
-            File input_tree_file = null;
-            for (File cur_file: input_tree_files.getFiles()) {
-                if (cur_file.getName().startsWith("${stream.kind}.")) {
-                    input_tree_file = cur_file;
-                    break;
+            ArrayList<File> input_tree_file_list = new ArrayList<File>();
+            for (File cur_file: input_tree_files) {
+                if (cur_file.getName().startsWith("${stream.kind}_")) {
+                    input_tree_file_list.add(cur_file);
                 }
             }
 
@@ -126,7 +127,7 @@ public class ConvertCMPToHTSEngineTask extends DefaultTask {
                             script_template_file.getAsFile().get(),
                             list_file.getAsFile().get(),
                             start_stream,
-                            input_tree_file,
+                            input_tree_file_list,
                             input_model_file.getAsFile().get(),
                             script_file,
                             output_tree_file,
@@ -155,7 +156,7 @@ class ConvertCMPToHTSEngineWorker implements Runnable {
     private File template_file;
 
     /** The input tree file */
-    private File input_tree_file;
+    private ArrayList<File> input_tree_files;
 
     /** The input model file */
     private File input_model_file;
@@ -184,13 +185,13 @@ class ConvertCMPToHTSEngineWorker implements Runnable {
      */
     @Inject
     public ConvertCMPToHTSEngineWorker(File template_file, File list_file, int stream_id,
-                                       File input_tree_file, File input_model_file,
+                                       ArrayList<File> input_tree_files, File input_model_file,
                                        File script_file, File output_tree_file, File output_model_file,
                                        HTSWrapper hts_wrapper) {
         // Inputs
         this.template_file = template_file;
         this.list_file = list_file;
-        this.input_tree_file = input_tree_file;
+        this.input_tree_files = input_tree_files;
         this.input_model_file = input_model_file;
 
         // Outputs
@@ -214,18 +215,17 @@ class ConvertCMPToHTSEngineWorker implements Runnable {
         // NOTE: HTS have a segfault when you are outputin the hts voice in another directory than
         // the input model directory
         def tmp_model = new File(input_model_file.getParent().toString(),  "pdf.${stream_id}")
-        def tmp_tree = new File(input_tree_file.getParent().toString(), "tree.${stream_id}")
+        def tmp_tree = new File(input_tree_files.get(0).getParent().toString(), "tree.${stream_id}")
 
         // Generate script file
-        def binding = [
-            tree_in: input_tree_file.toString(),
-            model_out: tmp_model.getParent().toString(),
-            tree_out: tmp_tree.getParent().toString(),
-        ];
-        def simple = new SimpleTemplateEngine()
-        def source = template_file.text
-        script_file.text = simple.createTemplate(source).make(binding).toString()
-
+        def script_content = "TR 2\n\n"
+        for (File tree_file: input_tree_files) {
+            script_content += "LT $tree_file\n"
+        }
+        script_content += "\n"
+        script_content += "CT \"${tmp_tree.getParent().toString()}\"\n\n"
+        script_content += "CM \"${tmp_model.getParent().toString()}\"\n"
+        script_file.text = script_content
 
         // Apply conversion
         hts_wrapper.HHEdOnMMFNoOutputArgs(script_file.toString(),

@@ -24,8 +24,9 @@ class ExportRAW {
         def export_dir = new File("$project.buildDir/raw")
         export_dir.mkdirs()
 
+        // FIXME: problem here !
         project.task("exportRAWTrees") {
-            dependsOn project.property("trainClusteredModels${last_cluster}")
+            dependsOn project.property("trainClusteredModels_${last_cluster}")
 
             doLast {
                 def tree_dir = new File("$export_dir/trees")
@@ -48,7 +49,7 @@ class ExportRAW {
         }
 
         project.task("exportRAWHMMModels") {
-            dependsOn project.property("trainClusteredModels${last_cluster}")
+            dependsOn project.property("trainClusteredModels_${last_cluster}")
 
             doLast {
                 def model_dir = new File("$export_dir/models")
@@ -56,13 +57,13 @@ class ExportRAW {
 
                 // Copy model files
                 project.copy {
-                    from project.property("trainClusteredModels${last_cluster}").trained_cmp_file
+                    from project.property("trainClusteredModels_${last_cluster}").trained_cmp_file
                     into model_dir
                     rename { file -> "re_clustered_cmp.mmf" }
                 }
 
                 project.copy {
-                    from project.property("trainClusteredModels${last_cluster}").trained_dur_file
+                    from project.property("trainClusteredModels_${last_cluster}").trained_dur_file
                     into model_dir
                     rename { file -> "re_clustered_dur.mmf" }
                 }
@@ -70,7 +71,7 @@ class ExportRAW {
         }
 
         project.task("exportRAWLists") {
-            dependsOn project.property("trainClusteredModels${last_cluster}")
+            dependsOn project.property("trainClusteredModels_${last_cluster}")
 
             doLast {
                 project.copy {

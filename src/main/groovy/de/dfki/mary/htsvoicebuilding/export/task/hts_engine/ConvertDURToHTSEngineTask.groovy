@@ -172,14 +172,12 @@ class ConvertDURToHTSEngineWorker implements Runnable {
         def tmp_tree = new File(tmp_dir.toString(), "tree.${stream_id}")
 
         // Generate script file
-        def binding = [
-            tree_in: input_tree_file.toString(),
-            model_out: tmp_model.getParent().toString(),
-            tree_out: tmp_tree.getParent().toString(),
-        ];
-        def simple = new SimpleTemplateEngine()
-        def source = template_file.text
-        script_file.text = simple.createTemplate(source).make(binding).toString()
+
+        def script_content = "TR 2\n\n"
+        script_content += "LT $input_tree_file\n\n"
+        script_content += "CT \"${tmp_tree.getParent().toString()}\"\n\n"
+        script_content += "CM \"${tmp_model.getParent().toString()}\"\n"
+        script_file.text = script_content
 
 
         // Apply conversion
