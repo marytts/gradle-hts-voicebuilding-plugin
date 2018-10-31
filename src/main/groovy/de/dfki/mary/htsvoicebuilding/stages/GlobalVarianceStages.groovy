@@ -44,8 +44,8 @@ class GlobalVarianceStages
             mlf_file = project.generateFullMLF.mlf_file
 
             // Model files
-            model_cmp_file = project.property("trainClusteredModels${last_clust}").trained_cmp_file
-            model_dur_file = project.property("trainClusteredModels${last_clust}").trained_dur_file
+            model_cmp_file = project.property("trainClusteredModels_${last_clust}").trained_cmp_file
+            model_dur_file = project.property("trainClusteredModels_${last_clust}").trained_dur_file
 
             // State Alignment
             alignment_dir = project.file("${project.configurationVoiceBuilding.gv_fal_dir}/state")

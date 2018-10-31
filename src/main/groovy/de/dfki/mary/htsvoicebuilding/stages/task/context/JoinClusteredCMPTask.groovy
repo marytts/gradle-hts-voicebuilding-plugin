@@ -1,5 +1,8 @@
 package de.dfki.mary.htsvoicebuilding.stages.task.context
 
+// List utils
+import java.util.ArrayList;
+
 // Utils for copy
 import java.nio.file.Files;
 
@@ -32,6 +35,19 @@ public class JoinClusteredCMPTask extends DefaultTask {
     @Internal
     int local_cur_clus_it;
 
+    @Internal
+    int stream_start;
+
+    @Internal
+    int stream_end;
+
+    @Internal
+    ArrayList<File> clustered_cmp_file_list;
+
+    /** The produced join clustered models */
+    @Internal
+    RegularFileProperty clustered_model_file
+
     /** The individual clustered files */
     @InputFiles
     ConfigurableFileCollection clustered_cmp_files = project.files()
@@ -44,9 +60,9 @@ public class JoinClusteredCMPTask extends DefaultTask {
     @OutputFile
     final RegularFileProperty script_file = newOutputFile();
 
-    /** The produced join clustered models */
+    /** The output flag file */
     @OutputFile
-    final RegularFileProperty clustered_model_file = newOutputFile();
+    final RegularFileProperty output_flag = newOutputFile();
 
 
     /**
@@ -66,17 +82,6 @@ public class JoinClusteredCMPTask extends DefaultTask {
      */
     @TaskAction
     public void join() {
-        // Generate list of files
-        ArrayList<File> clustered_files = new ArrayList<File>();
-
-        project.configuration.user_configuration.models.cmp.streams.each { stream ->
-            for (File cur_file: clustered_cmp_files) {
-                if (cur_file.getName().endsWith("${stream.name}.${local_cur_clus_it}")) {
-                    clustered_files.add(cur_file)
-                    break;
-                }
-            }
-        }
 
         // Submit the execution
         workerExecutor.submit(JoinClusteredCMPWorker.class,
@@ -86,9 +91,11 @@ public class JoinClusteredCMPTask extends DefaultTask {
                     config.setIsolationMode(IsolationMode.NONE);
                     config.params(
                         list_file.getAsFile().get(),
-                        clustered_files,
+                        clustered_cmp_file_list,
                         script_file.getAsFile().get(),
                         clustered_model_file.getAsFile().get(),
+                        output_flag.getAsFile().get(),
+                        stream_start, stream_end,
                         project.configurationVoiceBuilding.hts_wrapper,
                         project.configuration.user_configuration
                     );
@@ -114,11 +121,17 @@ class JoinClusteredCMPWorker implements Runnable {
     /** Produced joined cluster model file */
     private File join_clustered_file;
 
+    private File output_flag;
+
+
     /** HTSWrapper object */
     private HTSWrapper hts_wrapper;
 
     /** Configuration object */
     private Object configuration;
+
+    private int stream_start;
+    private int stream_end;
 
     /**
      *  The constructor of the worker
@@ -126,7 +139,8 @@ class JoinClusteredCMPWorker implements Runnable {
      */
     @Inject
     public JoinClusteredCMPWorker(File list_file, ArrayList<File> clustered_files,
-                                  File script_file, File join_clustered_file,
+                                  File script_file, File join_clustered_file, File output_flag,
+                                  int stream_start, int stream_end,
                                   HTSWrapper hts_wrapper, Object configuration) {
         // Input files
         this.list_file = list_file;
@@ -136,9 +150,13 @@ class JoinClusteredCMPWorker implements Runnable {
         this.script_file = script_file;
         this.join_clustered_file = join_clustered_file;
 
+        this.output_flag = output_flag
+
         // Wrapper + configuration
         this.hts_wrapper = hts_wrapper;
-        this.configuration = configuration
+        this.configuration = configuration;
+        this.stream_start = stream_start;
+        this.stream_end = stream_end;
     }
 
     /**
@@ -147,44 +165,21 @@ class JoinClusteredCMPWorker implements Runnable {
      */
     @Override
     public void run() {
-        // Prepare the file part
-        File cur_clustered_file = clustered_files.get(0);
-
-        //   1. copy the first stream models
-        Files.copy(cur_clustered_file.toPath(), join_clustered_file.toPath())
-
         // Join (only if more than one stream are used)
-        //  2. join the other one
         if (configuration.models.cmp.streams.size() > 1) {
 
             // Generate script
             def script_content = ""
-            for(def s=0; s<configuration.models.global.nb_emitting_states; s++) {
-                def cur_stream = 1
-                def i_stream = 0
-                configuration.models.cmp.streams.each { stream ->
+            for (s in 2..configuration.models.global.nb_emitting_states+1) {
 
-                    // Find the accurate coef clustered model file
-                    cur_clustered_file = clustered_files.get(i_stream);
+                // Find the accurate coef clustered model file
+                File cur_clustered_file = clustered_files.get(s-2);
 
-                    // Adapt end stream index
-                    def end_stream = cur_stream
-                    if (stream.is_msd) {
-                        end_stream += stream.winfiles.size() - 1
-                    }
 
-                    // Generate joing part of the script
-                    if (cur_stream > 1) {
-                        script_content += sprintf("JM %s {*.state[%d].stream[%d-%d]}\n",
-                                                  cur_clustered_file.toString(),
-                                                  s+2, cur_stream, end_stream)
-                    }
-
-                    // Update stream indexes
-                    cur_stream = end_stream + 1
-                    i_stream += 1
-                }
-                script_content += "\n"
+                // Generate joing part of the script
+                script_content += sprintf("JM %s {*.state[%d].stream[%d-%d]}\n",
+                                          cur_clustered_file.toString(),
+                                          s, stream_start, stream_end)
             }
             script_file.text = script_content;
 
@@ -195,5 +190,7 @@ class JoinClusteredCMPWorker implements Runnable {
                                   join_clustered_file.toString(),
                                   [])
         }
+
+        output_flag.text = "done"
     }
 }

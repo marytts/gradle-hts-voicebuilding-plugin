@@ -1,5 +1,7 @@
 package de.dfki.mary.htsvoicebuilding.stages.task.context
 
+import java.util.ArrayList;
+
 // Inject
 import javax.inject.Inject;
 
@@ -29,6 +31,34 @@ public class ClusteringCMPTask extends DefaultTask {
     @Internal
     int local_cur_clus_it;
 
+    /** Local stream name */
+    @Internal
+    String stream_name;
+
+    /** Local stream start */
+    @Internal
+    int stream_start;
+
+    /** Local stream start */
+    @Internal
+    int stream_end;
+
+    /** Local stream thr */
+    @Internal
+    String stream_thr;
+
+    /** Local stream gam */
+    @Internal
+    int stream_gam;
+
+    /** Local stream mdlf */
+    @Internal
+    double stream_mdlf;
+
+    /** Configuration file */
+    @InputFile
+    final RegularFileProperty config_file = newInputFile();
+
     /** The list of labels file */
     @InputFile
     final RegularFileProperty list_file = newInputFile();
@@ -45,13 +75,25 @@ public class ClusteringCMPTask extends DefaultTask {
     @InputFile
     final RegularFileProperty stats_cmp_file = newInputFile();
 
-    /** The input fullcontext model file */
+    /** The original input model file */
     @InputFile
-    final RegularFileProperty fullcontext_model_file = newInputFile();
+    final RegularFileProperty transitive_model_file = newInputFile();
 
-    /** The output clustered files */
+    /** The output tree files */
+    @OutputFiles
+    ConfigurableFileCollection tree_files = project.files();
+
+    /** The output tree files */
+    @Internal
+    ArrayList<File> tree_file_list
+
+    /** The output tree files */
     @OutputFiles
     ConfigurableFileCollection clustered_model_files = project.files();
+
+    /** The output tree files */
+    @Internal
+    ArrayList<File> clustered_model_file_list
 
     /**
      *  The constructor which defines which worker executor is going to achieve the conversion job
@@ -71,38 +113,22 @@ public class ClusteringCMPTask extends DefaultTask {
     @TaskAction
     public void cluster() {
 
-        def clustered_model_files_set = clustered_model_files.getFiles();
-        def project_cur_stream = 1
+        for (i in 2..project.configuration.user_configuration.models.global.nb_emitting_states+1) {
+            // 0. Get/init some baseline files
+            File script_file = new File("${project.configurationVoiceBuilding.hhed_script_dir}/${local_cur_clus_it}/cxc_${stream_name}_${i}.hed")
+            File tree_file = tree_file_list.get(i-2)
+            File clustered_model_file = clustered_model_file_list.get(i-2);
 
-        // Prepare parallelism part !
-        def streams = []
-        project.configuration.user_configuration.models.cmp.streams.each { stream ->
-            // FIXME: Define indexes
-            stream.start = project_cur_stream
-            stream.end   = project_cur_stream
-            if (stream.is_msd) {
-                stream.end += stream.winfiles.size() - 1
+            // 1. Prepare directories
+            if (! tree_file.getParentFile().exists()) {
+                tree_file.getParentFile().mkdirs();
+            }
+            if (! script_file.getParentFile().exists()) {
+                script_file.getParentFile().mkdirs();
             }
 
-            project_cur_stream = stream.end + 1
-            streams << stream
-        }
-
-        for (def stream: streams) {
-            // FIXME: Define indexes
-            def end_stream = project_cur_stream
-            def cur_stream = project_cur_stream
-            if (stream.is_msd) {
-                end_stream += stream.winfiles.size() - 1
-            }
-
-            def streamname = stream.name
-
-            //   2. generate HHEd scripts (FIXME: output_file would be better for that)
-            def script_file = new File("${project.configurationVoiceBuilding.hhed_script_dir}/cxc_${stream.name}.${local_cur_clus_it}.hed")
-            def tree_file = new File("${project.configurationVoiceBuilding.tree_dir}/${stream.name}.${local_cur_clus_it}.inf")
+            // 2. generate HHEd scripts (FIXME: output_file would be better for that)
             project.copy {
-
                 from script_template_file.getAsFile().get().getParent()
                 into script_file.getParent()
                 include script_template_file.getAsFile().get().getName()
@@ -110,13 +136,11 @@ public class ClusteringCMPTask extends DefaultTask {
 
                 def questions = question_file.getAsFile().get().text
                 def streamline = ""
-                for (i in 2..project.configuration.user_configuration.models.global.nb_emitting_states+1) {
-                    streamline += "TB " + stream.thr + " " + stream.name +  "_s" + i + "_ "
-                    streamline += "{*.state[" + i + "].stream[" + stream.start +  "-" + (stream.end)+ "]}\n"
-                }
+                streamline += "TB " + stream_thr + " " + stream_name +  "_s" + i + "_ "
+                streamline += "{*.state[" + i + "].stream[" + stream_start +  "-" + (stream_end)+ "]}\n"
 
                 def binding = [
-                    GAM : sprintf("%03d", stream.gam),
+                    GAM : sprintf("%03d", stream_gam),
                     STATSFILE: stats_cmp_file.getAsFile().get().toString(),
                     QUESTIONS: questions,
                     STREAMLINE: streamline,
@@ -127,24 +151,15 @@ public class ClusteringCMPTask extends DefaultTask {
             }
 
 
-            //   3. build the decision tree (FIXME: input file would be better!)
-            def params = ["-C", "${project.configurationVoiceBuilding.config_dir}/${stream.name}.cfg"]
-
-            if (stream.thr == 0) {
-                params += ["-m", "-a", stream.mdlf]
+            //  3. Add needed options for clustering
+            def params = ["-C", config_file.getAsFile().get().toString()]
+            if (stream_thr == "000") {
+                params += ["-m", "-a", stream_mdlf]
             }
 
-            // Get cluster model file
-            File clustered_model_file = null;
-            for (File cur_file: clustered_model_files_set) {
-                if (cur_file.getName().endsWith("${stream.name}.${local_cur_clus_it}")) {
-                    clustered_model_file = cur_file;
-                    break;
-                }
-            }
 
             // Submit the execution
-            workerExecutor.submit(ClusteringCMPWorker.class,
+            workerExecutor.submit(ClusteringStateCMPWorker.class,
                                   new Action<WorkerConfiguration>() {
                     @Override
                     public void execute(WorkerConfiguration config) {
@@ -152,7 +167,7 @@ public class ClusteringCMPTask extends DefaultTask {
                         config.params(
                             script_file,
                             list_file.getAsFile().get(),
-                            fullcontext_model_file.getAsFile().get(),
+                            transitive_model_file.getAsFile().get(),
                             clustered_model_file,
                             project.configurationVoiceBuilding.hts_wrapper,
                             params
@@ -167,7 +182,7 @@ public class ClusteringCMPTask extends DefaultTask {
  *  Worker class which cluster one kind of coefficient part of the CMP part
  *
  */
-class ClusteringCMPWorker implements Runnable {
+class ClusteringStateCMPWorker implements Runnable {
 
     /** List of labels file */
     private File list_file;
@@ -176,10 +191,10 @@ class ClusteringCMPWorker implements Runnable {
     private File script_file;
 
     /** Input full context model file */
-    private File fullcontext_model_file;
+    private File input_model_file;
 
     /** Produced clustered model file */
-    private File clustered_model_file;
+    private File output_model_file
 
     /** The HTS wrapper helper object */
     private HTSWrapper hts_wrapper;
@@ -195,16 +210,16 @@ class ClusteringCMPWorker implements Runnable {
      *  @param configuration the configuration object
      */
     @Inject
-    public ClusteringCMPWorker(File script_file, File list_file,
-                               File fullcontext_model_file, File clustered_model_file,
+    public ClusteringStateCMPWorker(File script_file, File list_file,
+                               File input_model_file, File output_model_file,
                                HTSWrapper hts_wrapper, ArrayList<String> params) {
         // Input
         this.script_file = script_file;
         this.list_file = list_file;
-        this.fullcontext_model_file = fullcontext_model_file;
+        this.input_model_file = input_model_file;
 
         // Outputs
-        this.clustered_model_file = clustered_model_file;
+        this.output_model_file = output_model_file;
 
         // Utilities
         this.hts_wrapper = hts_wrapper;
@@ -221,8 +236,8 @@ class ClusteringCMPWorker implements Runnable {
         // Cluster
         hts_wrapper.HHEdOnMMF(script_file.toString(),
                               list_file.toString(),
-                              fullcontext_model_file.toString(),
-                              clustered_model_file.toString(),
+                              input_model_file.toString(),
+                              output_model_file.toString(),
                               params)
     }
 }
