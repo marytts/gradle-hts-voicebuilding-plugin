@@ -35,12 +35,15 @@ public class JoinClusteredCMPTask extends DefaultTask {
     @Internal
     int local_cur_clus_it;
 
+    /** The start index of the manipulated stream */
     @Internal
     int stream_start;
 
+    /** The end index of the manipulated stream */
     @Internal
     int stream_end;
 
+    /** The list of clustered file as I need an ordered collection ! */
     @Internal
     ArrayList<File> clustered_cmp_file_list;
 
@@ -63,7 +66,6 @@ public class JoinClusteredCMPTask extends DefaultTask {
     /** The output flag file */
     @OutputFile
     final RegularFileProperty output_flag = newOutputFile();
-
 
     /**
      *  The constructor which defines which worker executor is going to achieve the conversion job
@@ -121,8 +123,8 @@ class JoinClusteredCMPWorker implements Runnable {
     /** Produced joined cluster model file */
     private File join_clustered_file;
 
+    /** Produced output flag file to link with other tasks */
     private File output_flag;
-
 
     /** HTSWrapper object */
     private HTSWrapper hts_wrapper;
@@ -130,7 +132,10 @@ class JoinClusteredCMPWorker implements Runnable {
     /** Configuration object */
     private Object configuration;
 
+    /** The start index of the manipulated stream */
     private int stream_start;
+
+    /** The end index of the manipulated stream */
     private int stream_end;
 
     /**

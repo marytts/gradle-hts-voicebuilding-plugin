@@ -85,7 +85,6 @@ class InitialisationStages {
         project.task("generateMOCCCMPConfigurationFiles", type:GenerateMOCCConfigurationFileTask) {
             description "Generate the MOCC configuration files for CMP part"
 
-
             Hashtable<File, Float> val = new Hashtable<File, Float>();
 
             // Fill values

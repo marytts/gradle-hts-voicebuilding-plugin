@@ -57,6 +57,10 @@ public class ClusteringCMPTask extends DefaultTask {
 
     /** Configuration file */
     @InputFile
+    final RegularFileProperty input_flag = newInputFile();
+
+    /** Configuration file */
+    @InputFile
     final RegularFileProperty config_file = newInputFile();
 
     /** The list of labels file */

@@ -98,16 +98,10 @@ class ContextStages
              ** Parallel CMP clustering part
              **********************************************************************************/
 
-            project.task("prepareCMPClustering_${cur_clus_it}") {
-                inputs.files project.property("trainFullContext${cur_clus_it}").trained_cmp_file;
-                doLast {
-                    project.copy {
-                        from project.property("trainFullContext${cur_clus_it}").trained_cmp_file;
-                        into project.file("${project.configurationVoiceBuilding.cmp_model_dir}/fullcontext_${cur_clus_it}/init/")
-
-                        rename { file -> "clustered.mmf"}
-                    }
-                }
+            project.task("prepareCMPClustering_${cur_clus_it}", type: PrepareCMPTask) {
+                fullcontext_model_file = project.property("trainFullContext${cur_clus_it}").trained_cmp_file;
+                clustered_model_file = project.file("${project.configurationVoiceBuilding.cmp_model_dir}/fullcontext_${cur_clus_it}/init/clustered.mmf")
+                output_flag = project.file("${project.configurationVoiceBuilding.cmp_model_dir}/fullcontext_${cur_clus_it}/init/prepare.flag")
             }
 
             project.configuration.user_configuration.models.cmp.streams.each { stream ->
@@ -130,11 +124,6 @@ class ContextStages
 
                     // FIXME: refactor
                     dependsOn "generateMOCCCMPConfigurationFiles"
-                    if (prev_stream == null) {
-                        dependsOn "prepareCMPClustering_${cur_clus_it}"
-                    } else {
-                        dependsOn "joinClusteredTo${prev_stream.name}_${cur_clus_it}"
-                    }
 
                     // Some variables (iteration id + stream)
                     local_cur_clus_it = cur_clus_it;
@@ -153,7 +142,14 @@ class ContextStages
                     config_file = project.file("${project.configurationVoiceBuilding.config_dir}/${stream.name}.cfg") // FIXME: refactor using the task MOCC dependency
 
                     // Transitive file
-                    transitive_model_file =  project.file("${project.configurationVoiceBuilding.cmp_model_dir}/fullcontext_${cur_clus_it}/init/clustered.mmf")
+                    if (prev_stream == null) {
+                        transitive_model_file =  project.property("prepareCMPClustering_${cur_clus_it}").clustered_model_file
+                        input_flag = project.property("prepareCMPClustering_${cur_clus_it}").output_flag
+                    } else {
+                        transitive_model_file =  project.property("joinClusteredTo${prev_stream.name}_${cur_clus_it}").clustered_model_file
+                        input_flag = project.property("joinClusteredTo${prev_stream.name}_${cur_clus_it}").output_flag
+                    }
+
 
                     // Outputs
                     def tmp_tree_files = []
@@ -189,7 +185,6 @@ class ContextStages
                     list_file = project.generateFullList.list_file
                     script_file = project.file("${project.configurationVoiceBuilding.hhed_script_dir}/${cur_clus_it}/join_${stream.name}.hed")
                     clustered_cmp_files = project.property("clusteringCMPTo${stream.name}_${cur_clus_it}").clustered_model_files
-
                     def model_files = []
                     for (i in 2..project.configuration.user_configuration.models.global.nb_emitting_states+1) {
                         def f = project.file("${project.configurationVoiceBuilding.cmp_model_dir}/fullcontext_${cur_clus_it}/init/${stream.name}_${i}.mmf")
@@ -199,10 +194,9 @@ class ContextStages
 
                     // Transitive
                     clustered_model_file = project.property("clusteringCMPTo${stream.name}_${cur_clus_it}").transitive_model_file
-                    project.file("$project.configurationVoiceBuilding.cmp_model_dir/fullcontext_$cur_clus_it/init/clustered.mmf")
 
                     // FIXME: output file flag
-                    output_flag = project.file("$project.configurationVoiceBuilding.cmp_model_dir/fullcontext_$cur_clus_it/init/join_${stream.name}_${cur_clus_it}.flag")
+                    output_flag = project.file("$project.configurationVoiceBuilding.cmp_model_dir/fullcontext_$cur_clus_it/init/join_${stream.name}.flag")
                 }
 
                 // Save stream
@@ -267,7 +261,7 @@ class ContextStages
                     list_file = project.generateFullList.list_file
                     input_model_file = project.property("trainClusteredModels_${cur_clus_it}").trained_cmp_file
 
-                    // Ooutputs
+                    // Outputs
                     untying_script_file = project.file("${project.configurationVoiceBuilding.hhed_script_dir}/untying_cmp.hhed")
                     output_model_file = project.file("${project.configurationVoiceBuilding.cmp_model_dir}/fullcontext_${cur_clus_it+1}/init/fullcontext.mmf")
                 }
