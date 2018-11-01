@@ -24,7 +24,7 @@ class ExportHTSEngine {
             description "Generate the header for the HTS engine voice export"
 
             def template_file = project.file("${project.configurationVoiceBuilding.template_dir}/htsvoice")
-            def header_file = project.file("${export_dir}/voice_global_header.htsvoice")
+            def header_file = project.file("${export_dir}/voice_global_header.cfg")
 
             inputs.files template_file
             outputs.files header_file
@@ -100,10 +100,22 @@ class ExportHTSEngine {
             output_model_file = project.file("${export_dir}/dur.pdf")
         }
 
+
+        project.task("exportHTSEnginePosition", type: ExportHTSEnginePositionTask) {
+            // Duration dependency !
+            dur_pdf   = project.property("convertDURToHTSEngine").output_model_file
+            dur_tree  = project.property("convertDURToHTSEngine").output_tree_file
+
+            // FIXME: why this dependency is needed !
+            dependsOn "convertCMPToHTSEngine"
+            cmp_pdfs  = project.property("convertCMPToHTSEngine").output_model_files
+            cmp_trees = project.property("convertCMPToHTSEngine").output_tree_files
+            position_file = project.file("${export_dir}/position.cfg")
+        }
+
         project.task("exportHTSEngine") {
             dependsOn project.exportHTSVoiceHeader
-            dependsOn project.convertCMPToHTSEngine
-            dependsOn project.convertDURToHTSEngine
+            dependsOn project.exportHTSEnginePosition
         }
     }
 }
