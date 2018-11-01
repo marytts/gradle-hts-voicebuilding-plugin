@@ -202,6 +202,7 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
             }
 
             // Instanciate HTS wrapper
+            HTSWrapper.logger = project.logger
             def beams = project.configuration.user_configuration.settings.training.beam.split() as List
             ext.hts_wrapper = new HTSWrapper(beams, "$ext.train_config_filename",
                                              project.configuration.user_configuration.settings.training.wf,

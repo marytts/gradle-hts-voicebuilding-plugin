@@ -1,9 +1,11 @@
 package de.dfki.mary.htsvoicebuilding
 
 import java.io.Serializable
+import org.gradle.api.logging.Logger
 
 class HTSWrapper implements Serializable {
 
+    public static Logger logger
     def global_options
     def beams
     def train_config_filename
@@ -61,7 +63,7 @@ class HTSWrapper implements Serializable {
                                 .redirectErrorStream(true)
                                 .start()
 
-        process.inputStream.eachLine {println it}
+        process.inputStream.eachLine { logger.info it }
         process.waitFor();
 
         if (process.exitValue() != 0) {
