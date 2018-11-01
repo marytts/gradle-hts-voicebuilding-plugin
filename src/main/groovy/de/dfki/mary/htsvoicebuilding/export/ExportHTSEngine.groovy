@@ -1,11 +1,5 @@
 package de.dfki.mary.htsvoicebuilding.export
 
-import groovy.json.* // To load the JSON configuration file
-
-import java.nio.file.Files
-import java.nio.file.Paths
-import org.apache.commons.io.FileUtils
-
 import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project

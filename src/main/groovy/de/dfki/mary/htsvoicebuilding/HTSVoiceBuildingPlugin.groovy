@@ -6,20 +6,10 @@ import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.MavenPlugin
-import org.gradle.api.tasks.Copy
-import org.gradle.api.tasks.Exec
-import org.gradle.api.tasks.JavaExec
-import org.gradle.api.tasks.bundling.Zip
-
-import static groovyx.gpars.GParsPool.runForkJoin
-import static groovyx.gpars.GParsPool.withPool
 
 import de.dfki.mary.htsvoicebuilding.export.*
 import de.dfki.mary.htsvoicebuilding.stages.*
 
-import groovy.json.JsonBuilder
-import groovy.json.JsonSlurper
-import groovy.xml.*
 
 class HTSVoicebuildingPlugin implements Plugin<Project> {
 

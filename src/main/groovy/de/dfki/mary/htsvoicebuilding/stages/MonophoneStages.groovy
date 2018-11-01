@@ -1,19 +1,7 @@
 package de.dfki.mary.htsvoicebuilding.stages
 
-import org.gradle.api.JavaVersion
-import org.gradle.api.Plugin
+// Gradle imports
 import org.gradle.api.Project
-import org.gradle.api.logging.LogLevel
-import org.gradle.api.plugins.JavaPlugin
-import org.gradle.api.plugins.MavenPlugin
-import org.gradle.api.tasks.Copy
-import org.gradle.api.tasks.Exec
-import org.gradle.api.tasks.JavaExec
-import org.gradle.api.tasks.bundling.Zip
-
-import static groovyx.gpars.GParsPool.runForkJoin
-import static groovyx.gpars.GParsPool.withPool
-
 
 // Task imports
 import de.dfki.mary.htsvoicebuilding.stages.task.monophone.*
