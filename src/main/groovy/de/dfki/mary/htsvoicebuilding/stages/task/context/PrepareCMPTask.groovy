@@ -28,12 +28,15 @@ public class PrepareCMPTask extends DefaultTask {
     /** The worker */
     private final WorkerExecutor workerExecutor;
 
+    /** the  fullcontext model file to copy */
     @InputFile
     final RegularFileProperty fullcontext_model_file = newInputFile()
 
+    /** The initial clustered model file */
     @Internal
     File clustered_model_file // FIXME: why file?
 
+    /** The output flag file to keep track of the process */
     @OutputFile
     final RegularFileProperty output_flag = newOutputFile()
 
@@ -76,8 +79,13 @@ public class PrepareCMPTask extends DefaultTask {
  */
 class PrepareCMPWorker implements Runnable {
 
+    /** the  fullcontext model file to copy */
     private File fullcontext_model_file
+
+    /** The initial clustered model file */
     private File clustered_model_file
+
+    /** The output flag file to keep track of the process */
     private File output_flag
 
     /**

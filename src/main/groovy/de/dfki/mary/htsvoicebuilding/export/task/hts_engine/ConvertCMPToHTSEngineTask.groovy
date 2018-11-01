@@ -212,10 +212,10 @@ class ConvertCMPToHTSEngineWorker implements Runnable {
     @Override
     public void run() {
 
-        // NOTE: HTS have a segfault when you are outputin the hts voice in another directory than
-        // the input model directory
-        def tmp_model = new File(input_model_file.getParent().toString(),  "pdf.${stream_id}")
-        def tmp_tree = new File(input_tree_files.get(0).getParent().toString(), "tree.${stream_id}")
+        def tmp_dir = new File(output_model_file.getParent().toString() + "/cmp")
+        tmp_dir.mkdirs()
+        def tmp_model = new File(tmp_dir.toString(),  "pdf.${stream_id}")
+        def tmp_tree = new File(tmp_dir.toString(), "tree.${stream_id}")
 
         // Generate script file
         def script_content = "TR 2\n\n"
