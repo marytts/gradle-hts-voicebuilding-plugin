@@ -169,7 +169,7 @@ class ConvertDURToHTSEngineWorker implements Runnable {
         def tmp_dir = new File(output_model_file.getParent().toString() + "/dur")
         tmp_dir.mkdir()
         def tmp_model = new File(tmp_dir.toString(),  "pdf.${stream_id}")
-        def tmp_tree = new File(tmp_dir.toString(), "tree.${stream_id}")
+        def tmp_tree = new File(tmp_dir.toString(), "trees.${stream_id}")
 
         // Generate script file
 
@@ -187,8 +187,7 @@ class ConvertDURToHTSEngineWorker implements Runnable {
                                           [])
 
         // Move the files
-        print(output_tree_file)
-        // Files.move(tmp_model.toPath(), output_model_file.toPath());
-        // Files.move(tmp_tree.toPath(), output_tree_file.toPath());
+        assert tmp_model.renameTo(output_model_file)
+        assert tmp_tree.renameTo(output_tree_file)
     }
 }

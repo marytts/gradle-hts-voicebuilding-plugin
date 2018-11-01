@@ -215,7 +215,7 @@ class ConvertCMPToHTSEngineWorker implements Runnable {
         def tmp_dir = new File(output_model_file.getParent().toString() + "/cmp")
         tmp_dir.mkdirs()
         def tmp_model = new File(tmp_dir.toString(),  "pdf.${stream_id}")
-        def tmp_tree = new File(tmp_dir.toString(), "tree.${stream_id}")
+        def tmp_tree = new File(tmp_dir.toString(), "trees.${stream_id}")
 
         // Generate script file
         def script_content = "TR 2\n\n"
@@ -234,7 +234,7 @@ class ConvertCMPToHTSEngineWorker implements Runnable {
                                           [])
 
         // Move the files
-        tmp_model.renameTo(output_model_file)
-        tmp_tree.renameTo(output_tree_file)
+        assert tmp_model.renameTo(output_model_file)
+        assert tmp_tree.renameTo(output_tree_file)
     }
 }
