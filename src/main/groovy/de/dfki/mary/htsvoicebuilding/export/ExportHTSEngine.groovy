@@ -1,16 +1,9 @@
 package de.dfki.mary.htsvoicebuilding.export
 
-import org.gradle.api.JavaVersion
-import org.gradle.api.Plugin
+// Gradle basline import
 import org.gradle.api.Project
-import org.gradle.api.logging.LogLevel
-import org.gradle.api.plugins.JavaPlugin
-import org.gradle.api.plugins.MavenPlugin
-import org.gradle.api.tasks.Copy
-import org.gradle.api.tasks.Exec
-import org.gradle.api.tasks.JavaExec
-import org.gradle.api.tasks.bundling.Zip
 
+// HTS Engine export tasks import
 import de.dfki.mary.htsvoicebuilding.export.task.hts_engine.*
 
 class ExportHTSEngine {
@@ -20,25 +13,11 @@ class ExportHTSEngine {
         def export_dir = new File("$project.buildDir/hts_engine")
         export_dir.mkdirs()
 
-        project.task("exportHTSVoiceHeader") {
+        project.task("exportHTSVoiceHeader", type:ExportHTSEngineHeaderTask) {
             description "Generate the header for the HTS engine voice export"
 
-            def template_file = project.file("${project.configurationVoiceBuilding.template_dir}/htsvoice")
-            def header_file = project.file("${export_dir}/voice_global_header.cfg")
-
-            inputs.files template_file
-            outputs.files header_file
-
-            doLast {
-                def binding = [configuration: project.configuration.user_configuration]
-                project.copy {
-                    from template_file
-                    into header_file.getParent()
-
-                    rename { file -> header_file.getName() }
-                    expand(binding)
-                }
-            }
+            template_file = project.file("${project.configurationVoiceBuilding.template_dir}/htsvoice")
+            header_file = project.file("${export_dir}/voice_global_header.cfg")
         }
 
         project.task("convertCMPToHTSEngine", type: ConvertCMPToHTSEngineTask) {
@@ -110,12 +89,25 @@ class ExportHTSEngine {
             dependsOn "convertCMPToHTSEngine"
             cmp_pdfs  = project.property("convertCMPToHTSEngine").output_model_files
             cmp_trees = project.property("convertCMPToHTSEngine").output_tree_files
+
+            // Produced dependency file
             position_file = project.file("${export_dir}/position.cfg")
         }
 
-        project.task("exportHTSEngine") {
-            dependsOn project.exportHTSVoiceHeader
-            dependsOn project.exportHTSEnginePosition
+        project.task("exportHTSEngine", type: ExportHTSEngineTask) {
+            header_file = project.exportHTSVoiceHeader.header_file
+            position_file = project.exportHTSEnginePosition.position_file
+
+            // Duration dependency !
+            dur_pdf   = project.property("convertDURToHTSEngine").output_model_file
+            dur_tree  = project.property("convertDURToHTSEngine").output_tree_file
+
+            // CMP Dependencies
+            cmp_pdfs  = project.property("convertCMPToHTSEngine").output_model_files
+            cmp_trees = project.property("convertCMPToHTSEngine").output_tree_files
+
+            // Final voice file
+            voice_file = project.file("${export_dir}/voice.hts_voice")
         }
     }
 }

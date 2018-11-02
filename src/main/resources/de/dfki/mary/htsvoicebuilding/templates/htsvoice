@@ -7,7 +7,7 @@ NUM_STREAMS:${configuration.models.cmp.streams.size()}
 <%
     def v_stream_type = []
     configuration.models.cmp.streams.each { stream ->
-        v_stream_type.add(stream.name.toUpperCase())
+        v_stream_type.add(stream.name)
     }
     STREAM_TYPE = v_stream_type.join(",")
 %>STREAM_TYPE:$STREAM_TYPE
@@ -19,7 +19,7 @@ COMMENT:
 <%
     def v_length = []
     configuration.models.cmp.streams.each { stream ->
-        v_length.add("VECTOR_LENGTH[${stream.name.toUpperCase()}]:${stream.order+1}")
+        v_length.add("VECTOR_LENGTH[${stream.name}]:${stream.order+1}")
     }
     VECTOR_LENGTH = v_length.join("\n")
 %>$VECTOR_LENGTH
@@ -27,9 +27,9 @@ COMMENT:
     def v_is_msd = []
     configuration.models.cmp.streams.each { stream ->
         if (stream.is_msd) {
-            v_is_msd.add("IS_MSD[${stream.name.toUpperCase()}]:1")
+            v_is_msd.add("IS_MSD[${stream.name}]:1")
         } else {
-            v_is_msd.add("IS_MSD[${stream.name.toUpperCase()}]:0")
+            v_is_msd.add("IS_MSD[${stream.name}]:0")
         }
     }
     IS_MSD = v_is_msd.join("\n")
@@ -37,7 +37,7 @@ COMMENT:
 <%
     def v_num_windows = []
     configuration.models.cmp.streams.each { stream ->
-        v_num_windows.add("NUM_WINDOWS[${stream.name.toUpperCase()}]:${stream.winfiles.size()}")
+        v_num_windows.add("NUM_WINDOWS[${stream.name}]:${stream.winfiles.size()}")
     }
     NUM_WINDOWS = v_num_windows.join("\n")
 %>$NUM_WINDOWS
@@ -45,9 +45,9 @@ COMMENT:
     def v_use_gv = []
     configuration.models.cmp.streams.each { stream ->
         if (configuration.gv.use) {
-            v_use_gv.add("USE_GV[${stream.name.toUpperCase()}]:1")
+            v_use_gv.add("USE_GV[${stream.name}]:0") // FIXME: for now false !
         } else {
-            v_use_gv.add("USE_GV[${stream.name.toUpperCase()}]:0")
+            v_use_gv.add("USE_GV[${stream.name}]:0")
         }
     }
     USE_GV = v_use_gv.join("\n")
@@ -56,9 +56,9 @@ COMMENT:
     def v_option = []
     configuration.models.cmp.streams.each { stream ->
         if (stream.kind == "mgc") { // FIXME: hardcoded
-            v_option.add("OPTION[${stream.name.toUpperCase()}]: ALPHA=0.55") // FIXME: hardcoded !!!!
+            v_option.add("OPTION[${stream.name}]: ALPHA=0.55") // FIXME: hardcoded !!!!
         } else {
-            v_option.add("OPTION[${stream.name.toUpperCase()}]:")
+            v_option.add("OPTION[${stream.name}]:")
         }
     }
     OPTION = v_option.join("\n")
