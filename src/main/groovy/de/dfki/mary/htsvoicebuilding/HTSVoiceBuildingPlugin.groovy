@@ -211,21 +211,19 @@ class HTSVoicebuildingPlugin implements Plugin<Project> {
         }
 
 
-        project.afterEvaluate {
-            // Stages
-            InitialisationStages.addTasks(project)
-            MonophoneStages.addTasks(project)
-            ContextStages.addTasks(project)
-            GlobalVarianceStages.addTasks(project)
-            DNNStages.addTasks(project)
+        // Stages
+        InitialisationStages.addTasks(project)
+        MonophoneStages.addTasks(project)
+        ContextStages.addTasks(project)
+        GlobalVarianceStages.addTasks(project)
+        DNNStages.addTasks(project)
 
-            // Export
-            ExportRAW.addTasks(project)
-            ExportHTSEngine.addTasks(project)
+        // Export
+        ExportRAW.addTasks(project)
+        ExportHTSEngine.addTasks(project)
 
-            //Training task !
-            addTrainTask(project)
-        }
+        //Training task !
+        addTrainTask(project)
     }
 
     /****************************************************************************************
