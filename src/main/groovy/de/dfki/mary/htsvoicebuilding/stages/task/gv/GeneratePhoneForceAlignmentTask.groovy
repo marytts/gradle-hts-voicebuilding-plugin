@@ -52,7 +52,7 @@ public class GeneratePhoneForceAlignmentTask extends DefaultTask {
 
         def id_last_state = project.configuration.user_configuration.models.global.nb_emitting_states + 1
 
-        state_aligned_directory.get().getAsFileTree().each { state_file ->
+        for (File state_file: state_aligned_directory.get().getAsFileTree()) {
             def phone_file = new File(state_file.toString().replaceAll("/state/", "/phone/"))
 
             // Submit the execution

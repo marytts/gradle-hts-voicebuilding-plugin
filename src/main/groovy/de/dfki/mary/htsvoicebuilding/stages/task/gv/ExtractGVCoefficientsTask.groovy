@@ -58,7 +58,7 @@ public class ExtractGVCoefficientsTask extends DefaultTask {
      */
     @TaskAction
     public void generate() {
-        aligned_lab_directory.get().getAsFileTree().each { lab_file ->
+        for (File lab_file: aligned_lab_directory.get().getAsFileTree()) {
 
             // Get basename
             String basename = lab_file.getName().split('\\.(?=[^\\.]+$)')[0]
@@ -70,7 +70,7 @@ public class ExtractGVCoefficientsTask extends DefaultTask {
             }
 
             // Get corresponding cmp output file
-            File cmp_file = cmp_directory.file("${basename}.cmp")
+            File cmp_file = cmp_directory.get().file("${basename}.cmp").getAsFile()
 
             // Submit the execution
             workerExecutor.submit(ExtractGVCoefficientsWorker.class,
