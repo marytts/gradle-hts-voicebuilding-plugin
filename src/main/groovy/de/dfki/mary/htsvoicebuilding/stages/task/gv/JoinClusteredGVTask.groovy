@@ -2,6 +2,7 @@ package de.dfki.mary.htsvoicebuilding.stages.task.gv
 
 // Utils for copy
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
 // Inject
 import javax.inject.Inject;
@@ -147,7 +148,8 @@ class JoinClusteredGVWorker implements Runnable {
         File cur_clustered_file = clustered_files.get(0);
 
         //   1. copy the first stream models
-        Files.copy(cur_clustered_file.toPath(), join_clustered_file.toPath())
+        Files.copy(cur_clustered_file.toPath(), join_clustered_file.toPath(),
+                   StandardCopyOption.REPLACE_EXISTING);
 
         // Join (only if more than one stream are used)
         //  2. join the other one

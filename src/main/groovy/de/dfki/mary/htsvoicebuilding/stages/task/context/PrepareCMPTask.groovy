@@ -1,6 +1,7 @@
 package de.dfki.mary.htsvoicebuilding.stages.task.context
 
 // For copying
+import java.nio.file.StandardCopyOption;
 import java.nio.file.Files;
 
 // Inject
@@ -107,7 +108,8 @@ class PrepareCMPWorker implements Runnable {
     @Override
     public void run() {
         // Copy the model file
-        Files.copy(fullcontext_model_file.toPath(), clustered_model_file.toPath());
+        Files.copy(fullcontext_model_file.toPath(), clustered_model_file.toPath(),
+                   StandardCopyOption.REPLACE_EXISTING);
 
         // Indicate that the task is done
         output_flag.text = "done"
