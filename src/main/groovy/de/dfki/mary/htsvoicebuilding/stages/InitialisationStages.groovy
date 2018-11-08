@@ -33,8 +33,6 @@ class InitialisationStages {
         project.task('generateSCPFile', type: GenerateSCPTask) {
             description "Generate the SCP file which contains the list of files used to train the models"
 
-            list_basenames = project.file(project.configuration.user_configuration.data.list_files)
-            data_dir = project.configurationVoiceBuilding.cmp_dir // FIXME: more generic
             scp_file = project.configurationVoiceBuilding.train_scp
         }
 

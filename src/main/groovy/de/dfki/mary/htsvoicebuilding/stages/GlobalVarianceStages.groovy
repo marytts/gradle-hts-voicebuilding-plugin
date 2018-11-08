@@ -48,40 +48,38 @@ class GlobalVarianceStages
             model_dur_file = project.property("trainClusteredModels_${last_clust}").trained_dur_file
 
             // State Alignment
-            alignment_dir = project.file("${project.configurationVoiceBuilding.gv_fal_dir}/state")
+            aligned_directory = project.file("${project.configurationVoiceBuilding.gv_fal_dir}/state/")
         }
 
         project.task('forceAlignment', type: GeneratePhoneForceAlignmentTask)  {
             description "Generate the phone force alignment"
 
             // Inputs
-            scp_file = project.generateSCPFile.scp_file
-            state_alignment_dir = project.generateStateForceAlignment.alignment_dir
+            state_aligned_directory = project.generateStateForceAlignment.aligned_directory
 
             // outputs
-            phone_alignment_dir = project.file("${project.configurationVoiceBuilding.gv_fal_dir}/phone")
+            phone_aligned_directory = project.file("${project.configurationVoiceBuilding.gv_fal_dir}/phone/")
         }
 
         project.task('GVCoefficientsExtraction', type: ExtractGVCoefficientsTask) {
             description "Extract global variance coefficients"
 
             // Inputs
-            scp_file = project.generateSCPFile.scp_file // FIXME: just used to get the filename by the way...
             if (project.configuration.user_configuration.gv.disable_force_alignment) {
-                lab_dir = project.file(project.configuration.user_configuration.gv.label_dir)
+                aligned_lab_directory = project.file("${project.configuration.user_configuration.gv.label_dir}")
             } else {
-                lab_dir = project.forceAlignment.phone_alignment_dir
+                aligned_lab_directory = project.forceAlignment.phone_aligned_directory
             }
 
             // Outputs
-            cmp_dir = project.configurationVoiceBuilding.gv_data_dir
+            cmp_directory = project.file(project.configurationVoiceBuilding.gv_data_dir)
         }
 
         project.task("generateGVLabFiles", type: GenerateGVLabFilesTask) {
             description "Generate the global variance label files"
 
             // Inputs
-            scp_file = project.generateSCPFile.scp_file // FIXME: just used to get the filename by the way...
+            scp_file = project.generateSCPFile.scp_file
             full_lab_dir = project.file(project.configuration.user_configuration.data.full_lab_dir)
 
             // Outputs
@@ -91,11 +89,8 @@ class GlobalVarianceStages
         project.task("generateGVSCPFile", type: GenerateSCPTask) {
             description "Generate the GV SCP file listing the global variance data files"
 
-            dependsOn 'GVCoefficientsExtraction' // FIXME
-
             // Inputs
-            list_basenames = project.file(project.configuration.user_configuration.data.list_files)
-            data_dir = project.configurationVoiceBuilding.gv_data_dir
+            data_directory = project.property('GVCoefficientsExtraction').cmp_directory
 
             // Otputs
             scp_file = project.file("${project.configurationVoiceBuilding.gv_scp_dir}/train.scp")

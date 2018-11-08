@@ -26,9 +26,8 @@ class DNNStages
             description "Generate the input linguistic vector features for DNN training"
 
             // Inputs
-            list_file = project.file(project.configuration.user_configuration.data.list_files)
             qconf_file = project.configurationVoiceBuilding.qconf
-            aligned_lab_dir = project.generateStateForceAlignment.alignment_dir
+            state_aligned_directory = project.generateStateForceAlignment.aligned_directory
 
             // Outputs
             ffi_dir = project.configurationVoiceBuilding.ffi_dir

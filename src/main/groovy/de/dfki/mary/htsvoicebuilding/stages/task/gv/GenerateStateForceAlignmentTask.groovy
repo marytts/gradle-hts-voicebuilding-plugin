@@ -9,6 +9,7 @@ import org.gradle.workers.*;
 // Gradle task related
 import org.gradle.api.Action;
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.*
@@ -47,7 +48,7 @@ public class GenerateStateForceAlignmentTask extends DefaultTask {
 
     /** The directory which contains produced state aligned labels */
     @OutputDirectory
-    final DirectoryProperty alignment_dir = newOutputDirectory()
+    final DirectoryProperty aligned_directory = newOutputDirectory()
 
     /**
      *  The constructor which defines which worker executor is going to achieve the conversion job
@@ -66,6 +67,7 @@ public class GenerateStateForceAlignmentTask extends DefaultTask {
      */
     @TaskAction
     public void generate() {
+
         // Submit the execution
         workerExecutor.submit(GenerateStateForceAlignmentWorker.class,
                               new Action<WorkerConfiguration>() {
@@ -78,7 +80,7 @@ public class GenerateStateForceAlignmentTask extends DefaultTask {
                         mlf_file.getAsFile().get(),
                         model_cmp_file.getAsFile().get(),
                         model_dur_file.getAsFile().get(),
-                        alignment_dir.getAsFile().get(),
+                        aligned_directory.getAsFile().get(),
                         project.configurationVoiceBuilding.hts_wrapper
                     );
                 }
@@ -143,7 +145,6 @@ class GenerateStateForceAlignmentWorker implements Runnable {
      */
     @Override
     public void run() {
-
         hts_wrapper.HSMMAlign(scp_file.toString(),
                               list_file.toString(),
                               mlf_file.toString(),

@@ -9,6 +9,7 @@ import org.gradle.workers.*;
 // Gradle task related
 import org.gradle.api.Action;
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.*
@@ -23,15 +24,11 @@ public class GenerateFeatureTask extends DefaultTask {
     /** The worker */
     private final WorkerExecutor workerExecutor;
 
-    /** The list of labels file */
-    @InputFile
-    final RegularFileProperty list_file = newInputFile();
-
     @InputFile
     final RegularFileProperty qconf_file = newInputFile();
 
     @InputDirectory
-    final DirectoryProperty aligned_lab_dir = newInputDirectory();
+    final DirectoryProperty state_aligned_directory = newInputDirectory()
 
     @OutputDirectory
     final DirectoryProperty ffi_dir = newOutputDirectory();
@@ -53,8 +50,8 @@ public class GenerateFeatureTask extends DefaultTask {
      */
     @TaskAction
     public void convert() {
-
-        for (String cur_file: list_file.getAsFile().get().readLines()) {
+        state_aligned_directory.get().getAsFileTree().each { cur_lab_file ->
+            def basename = cur_lab_file.getName().replaceAll(/.lab$/, "")
 
             // Submit the execution for the cmpation
             workerExecutor.submit(GenerateFeatureWorker.class,
@@ -64,8 +61,8 @@ public class GenerateFeatureTask extends DefaultTask {
                         config.setIsolationMode(IsolationMode.NONE);
                         config.params(
                             new File(project.utils_dir, "makefeature.pl"),
-                            new File(aligned_lab_dir.getAsFile().get().toString(), "${cur_file}.lab"),
-                            new File(ffi_dir.getAsFile().get().toString(), "${cur_file}.ffi"),
+                            cur_lab_file,
+                            new File(ffi_dir.getAsFile().get().toString(), "${basename}.ffi"),
                             qconf_file.getAsFile().get(),
                             (float) project.configuration.user_configuration.signal.frameshift
                         );

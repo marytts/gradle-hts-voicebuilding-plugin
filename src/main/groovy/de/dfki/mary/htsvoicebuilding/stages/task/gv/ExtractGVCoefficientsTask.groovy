@@ -9,6 +9,7 @@ import org.gradle.workers.*;
 // Gradle task related
 import org.gradle.api.Action;
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.*
@@ -25,23 +26,20 @@ import java.nio.file.Path;
 import java.nio.file.Files;
 
 /**
- *  Definition of the task type to generate spectrum, f0 and aperiodicity using world vocoder
+ *  Task to extract coefficients for global variance training
  *
  */
 public class ExtractGVCoefficientsTask extends DefaultTask {
     /** The worker */
     private final WorkerExecutor workerExecutor;
 
-    /** The list of files to manipulate */
-    @InputFile
-    final RegularFileProperty scp_file = newInputFile()
-
+    /** The input label files */
     @InputDirectory
-    final DirectoryProperty lab_dir = newInputDirectory()
+    final DirectoryProperty aligned_lab_directory = newInputDirectory()
 
-    /** The directory containing the spectrum files */
+    /** The output gv data files */
     @OutputDirectory
-    final DirectoryProperty cmp_dir = newOutputDirectory()
+    final DirectoryProperty cmp_directory = newOutputDirectory()
 
     /**
      *  The constructor which defines which worker executor is going to achieve the conversion job
@@ -55,26 +53,24 @@ public class ExtractGVCoefficientsTask extends DefaultTask {
     }
 
     /**
-     *  The actual generateion method
+     *  The actual generation method
      *
      */
     @TaskAction
     public void generate() {
-        for (String cur_file: scp_file.getAsFile().get().readLines()) {
+        aligned_lab_directory.get().getAsFileTree().each { lab_file ->
 
-            String basename = new File(cur_file).getName().split('\\.(?=[^\\.]+$)')[0]
+            // Get basename
+            String basename = lab_file.getName().split('\\.(?=[^\\.]+$)')[0]
 
-            // List all input files
+            // List all input files (FIXME: need to be linked!)
             ArrayList<File> input_files = new ArrayList<File>();
             for (def stream: project.configuration.user_configuration.models.cmp.streams) {
                 input_files.add(new File(stream.coeffDir, basename + "." + stream.kind))
             }
 
-            // Get lab file
-            File lab_file = new File(lab_dir.getAsFile().get(), basename + ".lab")
-
-            // Generate output filename
-            File cmp_file = new File(cmp_dir.getAsFile().get(), basename + ".cmp");
+            // Get corresponding cmp output file
+            File cmp_file = cmp_directory.file("${basename}.cmp")
 
             // Submit the execution
             workerExecutor.submit(ExtractGVCoefficientsWorker.class,
@@ -116,7 +112,8 @@ class ExtractGVCoefficientsWorker implements Runnable {
      *  @param configuration the configuration object
      */
     @Inject
-    public ExtractGVCoefficientsWorker(ArrayList<File> input_files, File lab_file, File output_cmp_file, Object configuration) {
+    public ExtractGVCoefficientsWorker(ArrayList<File> input_files, File lab_file, File output_cmp_file,
+                                       Object configuration) {
 	this.input_files = input_files;
         this.lab_file = lab_file;
 	this.output_cmp_file = output_cmp_file;

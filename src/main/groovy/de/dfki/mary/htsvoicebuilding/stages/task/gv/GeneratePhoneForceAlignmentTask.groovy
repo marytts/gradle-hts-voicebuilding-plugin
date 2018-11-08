@@ -9,6 +9,7 @@ import org.gradle.workers.*;
 // Gradle task related
 import org.gradle.api.Action;
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.*
@@ -22,18 +23,13 @@ public class GeneratePhoneForceAlignmentTask extends DefaultTask {
     /** The worker */
     private final WorkerExecutor workerExecutor;
 
-    /** The list of files */
-    @InputFile
-    final RegularFileProperty scp_file = newInputFile()
-
-    /** The state aligned file directory */
+    /** The state aligned files */
     @InputDirectory
-    final DirectoryProperty state_alignment_dir = newInputDirectory()
+    final DirectoryProperty state_aligned_directory = newInputDirectory()
 
-
-    /** The produced phone aligned file directory */
+    /** The produced phone aligned files */
     @OutputDirectory
-    final DirectoryProperty phone_alignment_dir = newOutputDirectory()
+    final DirectoryProperty phone_aligned_directory = newOutputDirectory()
 
 
     /**
@@ -56,10 +52,8 @@ public class GeneratePhoneForceAlignmentTask extends DefaultTask {
 
         def id_last_state = project.configuration.user_configuration.models.global.nb_emitting_states + 1
 
-        for (String cur_file: scp_file.getAsFile().get().readLines()) {
-            String basename = new File(cur_file).getName().split('\\.(?=[^\\.]+$)')[0]
-            def state_file = new File(state_alignment_dir.getAsFile().get().toString(), "${basename}.lab")
-            def phone_file = new File(phone_alignment_dir.getAsFile().get().toString(), "${basename}.lab")
+        state_aligned_directory.get().getAsFileTree().each { state_file ->
+            def phone_file = new File(state_file.toString().replaceAll("/state/", "/phone/"))
 
             // Submit the execution
             workerExecutor.submit(GeneratePhoneForceAlignmentWorker.class,
